@@ -74,7 +74,7 @@ class MobileManipulatorDummyVisualization final : public DummyObserver {
   const ManipulatorModelInfo modelInfo_;
   std::vector<std::string> removeJointNames_;
 
-  rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr jointPublisher_;
+ rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr jointPublisher_;
   tf2_ros::TransformBroadcaster tfBroadcaster_;
 
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr
@@ -83,6 +83,7 @@ class MobileManipulatorDummyVisualization final : public DummyObserver {
       stateOptimizedPosePublisher_;
 
   std::unique_ptr<GeometryInterfaceVisualization> geometryVisualization_;
+
 };
 
 }  // namespace mobile_manipulator

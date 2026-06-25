@@ -1,6 +1,7 @@
 import os
 
 import launch
+import launch_ros.actions
 from ament_index_python.packages import get_package_share_directory
 
 
@@ -40,6 +41,12 @@ def generate_launch_description():
                 'libFolder': launch.substitutions.LaunchConfiguration('libFolder'),
                 'targetExecutable': 'mobile_manipulator_dual_target',
             }.items()
+        ),
+        launch_ros.actions.Node(
+            package='ocs2_mobile_manipulator_ros',
+            executable='joint_state_command_bridge.py',
+            name='joint_state_command_bridge',
+            output='screen'
         )
     ])
     return ld

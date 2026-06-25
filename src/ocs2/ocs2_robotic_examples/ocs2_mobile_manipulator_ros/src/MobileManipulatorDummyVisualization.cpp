@@ -37,7 +37,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ocs2_ros_interfaces/common/RosMsgHelpers.h>
 #include <urdf/model.h>
 
-#include <chrono>
 #include <geometry_msgs/msg/pose_array.hpp>
 #include <iostream>
 #include <kdl_parser/kdl_parser.hpp>
@@ -104,11 +103,15 @@ void MobileManipulatorDummyVisualization::launchVisualizerNode() {
                                                    removeJointNames_));
   // activate markers for self-collision visualization
   if (activateSelfCollision) {
+    std::vector<std::pair<std::string, std::string>> collisionLinkPairs;
     std::vector<std::pair<size_t, size_t>> collisionObjectPairs;
+    loadData::loadStdVectorOfPair(taskFile, "selfCollision.collisionLinkPairs",
+                                  collisionLinkPairs, true);
     loadData::loadStdVectorOfPair(taskFile,
                                   "selfCollision.collisionObjectPairs",
                                   collisionObjectPairs, true);
     PinocchioGeometryInterface geomInterface(pinocchioInterface,
+                                             collisionLinkPairs,
                                              collisionObjectPairs);
     // set geometry visualization markers
     geometryVisualization_.reset(new GeometryInterfaceVisualization(
@@ -150,10 +153,9 @@ void MobileManipulatorDummyVisualization::publishObservation(
   base_tf.transform.rotation = ros_msg_helpers::getOrientationMsg(q_world_base);
   tfBroadcaster_.sendTransform(base_tf);
 
-  // publish joints transforms
   const auto j_arm = getArmJointAngles(observation.state, modelInfo_);
   sensor_msgs::msg::JointState joint_state;
-  joint_state.header.stamp = node_->get_clock()->now();
+  joint_state.header.stamp = timeStamp;
   const auto dofNames_count = modelInfo_.dofNames.size();
   const auto joint_count = dofNames_count + removeJointNames_.size();
   joint_state.name.resize(joint_count);

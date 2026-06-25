@@ -401,6 +401,9 @@ void MPC_ROS_Interface::mpcObservationCallback(
 
   // measure the delay for sending ROS messages
   mpcTimer_.endTimer();
+  // std::cerr << "[MPC_ROS_Interface] solve time: "
+  //           << mpcTimer_.getLastIntervalInMilliseconds() << " [ms]"
+  //           << std::endl;
 
   // check MPC delay and solution window compatibility
   scalar_t timeWindow = mpc_.settings().solutionTimeWindow_;

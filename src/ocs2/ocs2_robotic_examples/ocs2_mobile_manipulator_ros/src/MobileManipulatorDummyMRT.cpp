@@ -33,6 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ocs2_ros_interfaces/mrt/MRT_ROS_Dummy_Loop.h>
 #include <ocs2_ros_interfaces/mrt/MRT_ROS_Interface.h>
 
+#include <pinocchio/algorithm/frames.hpp>
+#include <pinocchio/algorithm/kinematics.hpp>
+
 #include <stdexcept>
 
 #include "rclcpp/rclcpp.hpp"
@@ -87,13 +90,27 @@ int main(int argc, char** argv) {
   initObservation.input.setZero(interface.getManipulatorModelInfo().inputDim);
   initObservation.time = 0.0;
 
-  // initial command
-  const auto& eeFrames = interface.getManipulatorModelInfo().eeFrames;
-  const size_t numEndEffectors = eeFrames.empty() ? 1 : eeFrames.size();
+  // Initialize the target at the current end-effector pose so the robot stays
+  // at its configured initial state after loading.
+  const auto& modelInfo = interface.getManipulatorModelInfo();
+  const auto& model = interface.getPinocchioInterface().getModel();
+  auto& data =
+      const_cast<PinocchioInterface&>(interface.getPinocchioInterface()).getData();
+  const auto& eeFrames =
+      modelInfo.eeFrames.empty() ? std::vector<std::string>{modelInfo.eeFrame}
+                                 : modelInfo.eeFrames;
+  const size_t numEndEffectors = eeFrames.size();
+
+  pinocchio::forwardKinematics(model, data, initObservation.state);
+  pinocchio::updateFramePlacements(model, data);
+
   vector_t initTarget(7 * numEndEffectors);
   for (size_t i = 0; i < numEndEffectors; ++i) {
-    initTarget.segment<3>(7 * i) << 1, 0, 1;
-    initTarget.segment<4>(7 * i + 3) << Eigen::Quaternion<scalar_t>(1, 0, 0, 0).coeffs();
+    const auto eeIndex = model.getBodyId(eeFrames[i]);
+    initTarget.segment<3>(7 * i) = data.oMf[eeIndex].translation();
+    Eigen::Quaternion<scalar_t> eeOrientation(data.oMf[eeIndex].rotation());
+    eeOrientation.normalize();
+    initTarget.segment<4>(7 * i + 3) = eeOrientation.coeffs();
   }
   const vector_t zeroInput =
       vector_t::Zero(interface.getManipulatorModelInfo().inputDim);

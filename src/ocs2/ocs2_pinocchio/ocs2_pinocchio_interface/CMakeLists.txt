@@ -66,6 +66,10 @@ install(FILES cmake/pinocchio_config.cmake
   DESTINATION share/${PROJECT_NAME}/cmake
 )
 
+ament_environment_hooks(
+  "${CMAKE_CURRENT_SOURCE_DIR}/environment/openrobots.sh"
+)
+
 ament_export_include_directories(
   include
   ${pinocchio_INCLUDE_DIRS}
