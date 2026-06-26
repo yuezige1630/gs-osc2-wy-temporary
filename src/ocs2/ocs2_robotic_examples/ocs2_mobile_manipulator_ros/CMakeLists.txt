@@ -9,6 +9,7 @@ find_package(tf2_ros REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
 find_package(urdf REQUIRED)
 find_package(kdl_parser REQUIRED)
 find_package(robot_state_publisher REQUIRED)
@@ -35,6 +36,7 @@ set(dependencies
   sensor_msgs
   geometry_msgs
   visualization_msgs
+  std_srvs
   urdf
   kdl_parser
   robot_state_publisher
@@ -96,6 +98,15 @@ target_include_directories(mobile_manipulator_dual_target PRIVATE
 ament_target_dependencies(mobile_manipulator_dual_target ${dependencies})
 target_compile_options(mobile_manipulator_dual_target PRIVATE ${OCS2_PINOCCHIO_FLAGS})
 
+add_executable(dual_arm_grasp_waypoint_planner
+  src/DualArmGraspWaypointPlanner.cpp
+)
+target_include_directories(dual_arm_grasp_waypoint_planner PRIVATE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+)
+ament_target_dependencies(dual_arm_grasp_waypoint_planner ${dependencies})
+target_compile_options(dual_arm_grasp_waypoint_planner PRIVATE ${OCS2_PINOCCHIO_FLAGS})
+
 #############
 ## Install ##
 #############
@@ -106,6 +117,7 @@ install(TARGETS
   mobile_manipulator_dummy_mrt_node
   mobile_manipulator_target
   mobile_manipulator_dual_target
+  dual_arm_grasp_waypoint_planner
   RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
 
