@@ -1,18 +1,41 @@
+import os
+
 import launch
 import launch_ros.actions
 from ament_index_python.packages import get_package_share_directory
 
 
 def generate_launch_description():
+    manipulator_launch = os.path.join(
+        get_package_share_directory('ocs2_mobile_manipulator_ros'),
+        'launch',
+        'manipulator_gensong_dual.launch.py',
+    )
     return launch.LaunchDescription([
+        launch.actions.DeclareLaunchArgument(
+            name='rviz',
+            default_value='true'
+        ),
         launch.actions.DeclareLaunchArgument(
             name='urdfFile',
             default_value=get_package_share_directory('ocs2_robotic_assets') +
                           '/resources/gensong_wheel_outfit_cover/urdf/gensong_wheel_outfit.urdf'
         ),
         launch.actions.DeclareLaunchArgument(
+            name='rvizconfig',
+            default_value=get_package_share_directory('ocs2_mobile_manipulator_ros') + '/rviz/mobile_manipulator.rviz'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='debug',
+            default_value='false'
+        ),
+        launch.actions.DeclareLaunchArgument(
             name='taskFile',
             default_value=get_package_share_directory('ocs2_mobile_manipulator') + '/config/gensong/task_dual_ee.info'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='libFolder',
+            default_value='/tmp/ocs2_mobile_manipulator_auto_generated/gensong'
         ),
         launch.actions.DeclareLaunchArgument(
             name='box_pose_topic',
@@ -77,6 +100,18 @@ def generate_launch_description():
         launch.actions.DeclareLaunchArgument(
             name='right_wrist_yaw',
             default_value='0.0'
+        ),
+        launch.actions.IncludeLaunchDescription(
+            launch.launch_description_sources.PythonLaunchDescriptionSource(
+                manipulator_launch
+            ),
+            launch_arguments={
+                'rviz': launch.substitutions.LaunchConfiguration('rviz'),
+                'debug': launch.substitutions.LaunchConfiguration('debug'),
+                'urdfFile': launch.substitutions.LaunchConfiguration('urdfFile'),
+                'taskFile': launch.substitutions.LaunchConfiguration('taskFile'),
+                'libFolder': launch.substitutions.LaunchConfiguration('libFolder'),
+            }.items()
         ),
         launch_ros.actions.Node(
             package='ocs2_mobile_manipulator_ros',
