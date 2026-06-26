@@ -131,6 +131,7 @@ install(DIRECTORY launch rviz
 
 install(PROGRAMS
   scripts/joint_state_command_bridge.py
+  scripts/preset_dual_arm_grasp_pose_publisher.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

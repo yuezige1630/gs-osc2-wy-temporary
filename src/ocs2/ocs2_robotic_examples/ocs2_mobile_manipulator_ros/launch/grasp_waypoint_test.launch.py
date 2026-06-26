@@ -1,10 +1,21 @@
+import os
+
 import launch
 import launch_ros.actions
 from ament_index_python.packages import get_package_share_directory
 
 
 def generate_launch_description():
+    manipulator_launch = os.path.join(
+        get_package_share_directory('ocs2_mobile_manipulator_ros'),
+        'launch',
+        'manipulator_gensong_dual.launch.py',
+    )
     return launch.LaunchDescription([
+        launch.actions.DeclareLaunchArgument(
+            name='rviz',
+            default_value='true'
+        ),
         launch.actions.DeclareLaunchArgument(
             name='urdfFile',
             default_value=get_package_share_directory('ocs2_robotic_assets') +
@@ -78,6 +89,14 @@ def generate_launch_description():
             name='right_wrist_yaw',
             default_value='0.0'
         ),
+        launch.actions.IncludeLaunchDescription(
+            launch.launch_description_sources.PythonLaunchDescriptionSource(manipulator_launch),
+            launch_arguments={
+                'rviz': launch.substitutions.LaunchConfiguration('rviz'),
+                'urdfFile': launch.substitutions.LaunchConfiguration('urdfFile'),
+                'taskFile': launch.substitutions.LaunchConfiguration('taskFile'),
+            }.items()
+        ),
         launch_ros.actions.Node(
             package='ocs2_mobile_manipulator_ros',
             executable='dual_arm_grasp_waypoint_planner',
@@ -110,6 +129,83 @@ def generate_launch_description():
                 },
                 {
                     'grasp_z_offset': launch.substitutions.LaunchConfiguration('grasp_z_offset')
+                },
+                {
+                    'grasp_frame_rpy.roll': launch.substitutions.LaunchConfiguration('grasp_frame_roll')
+                },
+                {
+                    'grasp_frame_rpy.pitch': launch.substitutions.LaunchConfiguration('grasp_frame_pitch')
+                },
+                {
+                    'grasp_frame_rpy.yaw': launch.substitutions.LaunchConfiguration('grasp_frame_yaw')
+                },
+                {
+                    'left_wrist_compensation_rpy.roll': launch.substitutions.LaunchConfiguration('left_wrist_roll')
+                },
+                {
+                    'left_wrist_compensation_rpy.pitch': launch.substitutions.LaunchConfiguration('left_wrist_pitch')
+                },
+                {
+                    'left_wrist_compensation_rpy.yaw': launch.substitutions.LaunchConfiguration('left_wrist_yaw')
+                },
+                {
+                    'right_wrist_compensation_rpy.roll': launch.substitutions.LaunchConfiguration('right_wrist_roll')
+                },
+                {
+                    'right_wrist_compensation_rpy.pitch': launch.substitutions.LaunchConfiguration('right_wrist_pitch')
+                },
+                {
+                    'right_wrist_compensation_rpy.yaw': launch.substitutions.LaunchConfiguration('right_wrist_yaw')
+                },
+                {
+                    'enable_transport_stage': True
+                },
+                {
+                    'enable_place_stage': True
+                },
+                {
+                    'transport_offset_is_absolute': True
+                },
+                {
+                    'transport_offset_x': 0.8994
+                },
+                {
+                    'transport_offset_y': -0.0327
+                },
+                {
+                    'transport_offset_z': 1.1000
+                }
+            ]
+        ),
+        launch_ros.actions.Node(
+            package='ocs2_mobile_manipulator_ros',
+            executable='preset_dual_arm_grasp_pose_publisher.py',
+            name='preset_dual_arm_grasp_pose_publisher',
+            output='screen',
+            parameters=[
+                {
+                    'box_pose_topic': launch.substitutions.LaunchConfiguration('box_pose_topic')
+                },
+                {
+                    'box_size_x': launch.substitutions.LaunchConfiguration('box_size_x')
+                },
+                {
+                    'box_size_y': launch.substitutions.LaunchConfiguration('box_size_y')
+                },
+                {
+                    'box_size_z': launch.substitutions.LaunchConfiguration('box_size_z')
+                },
+                {
+                    'grasp_edge_inset_y': launch.substitutions.LaunchConfiguration('grasp_edge_inset_y')
+                },
+                {
+                    'grasp_x_offset': launch.substitutions.LaunchConfiguration('grasp_x_offset')
+                },
+                {
+                    'grasp_z_offset': launch.substitutions.LaunchConfiguration('grasp_z_offset')
+                },
+                {
+                    'urdf_file': launch.substitutions.LaunchConfiguration('urdfFile')
                 },
                 {
                     'grasp_frame_rpy.roll': launch.substitutions.LaunchConfiguration('grasp_frame_roll')
