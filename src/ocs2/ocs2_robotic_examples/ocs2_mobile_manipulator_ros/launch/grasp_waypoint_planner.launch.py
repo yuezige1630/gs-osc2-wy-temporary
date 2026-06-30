@@ -101,6 +101,30 @@ def generate_launch_description():
             name='right_wrist_yaw',
             default_value='0.0'
         ),
+        launch.actions.DeclareLaunchArgument(
+            name='enable_transport_stage',
+            default_value='false'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='enable_place_stage',
+            default_value='false'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='transport_offset_is_absolute',
+            default_value='false'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='transport_offset_x',
+            default_value='0.0'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='transport_offset_y',
+            default_value='0.0'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='transport_offset_z',
+            default_value='0.0'
+        ),
         launch.actions.IncludeLaunchDescription(
             launch.launch_description_sources.PythonLaunchDescriptionSource(
                 manipulator_launch
@@ -172,6 +196,24 @@ def generate_launch_description():
                 },
                 {
                     'right_wrist_compensation_rpy.yaw': launch.substitutions.LaunchConfiguration('right_wrist_yaw')
+                },
+                {
+                    'enable_transport_stage': launch.substitutions.LaunchConfiguration('enable_transport_stage')
+                },
+                {
+                    'enable_place_stage': launch.substitutions.LaunchConfiguration('enable_place_stage')
+                },
+                {
+                    'transport_offset_is_absolute': launch.substitutions.LaunchConfiguration('transport_offset_is_absolute')
+                },
+                {
+                    'transport_offset_x': launch.substitutions.LaunchConfiguration('transport_offset_x')
+                },
+                {
+                    'transport_offset_y': launch.substitutions.LaunchConfiguration('transport_offset_y')
+                },
+                {
+                    'transport_offset_z': launch.substitutions.LaunchConfiguration('transport_offset_z')
                 }
             ]
         )

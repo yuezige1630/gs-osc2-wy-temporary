@@ -97,6 +97,66 @@ ros2 launch ocs2_mobile_manipulator_ros grasp_waypoint_planner.launch.py box_pos
 ros2 launch ocs2_mobile_manipulator_ros manipulator_gensong_dual.launch.py
 ```
 
+### 5.1 手动测试 `box_pose` 规划
+
+当前 `dual_arm_grasp_waypoint_planner` 在收到 `box_pose` 后，会先缓存箱子位姿；要真正下发规划结果，还需要再调用一次服务：
+
+```bash
+ros2 service call /plan_and_send_grasp_trajectory std_srvs/srv/Trigger "{}"
+```
+
+推荐按下面顺序测试。
+
+第 1 个终端启动规划：
+
+```bash
+ros2 launch ocs2_mobile_manipulator_ros grasp_waypoint_planner.launch.py
+```
+
+如果你要测试“完整规划（抓取 -> 抬起 -> 搬运 -> 放置）”，启动时需要显式打开搬运/放置阶段，并给一个不同于当前箱子中心的目标放置位姿。例如：
+
+```bash
+ros2 launch ocs2_mobile_manipulator_ros grasp_waypoint_planner.launch.py \
+  enable_transport_stage:=true \
+  enable_place_stage:=true \
+  transport_offset_is_absolute:=true \
+  transport_offset_x:=0.75 \
+  transport_offset_y:=0.20 \
+  transport_offset_z:=1.10
+```
+
+这里 `transport_offset_*` 在 `transport_offset_is_absolute:=true` 时表示绝对放置目标；如果把它设置成和当前 `box_pose` 一样，效果通常就只会表现成“抓起后又放回原地”。
+
+第 2 个终端发布一次测试 `box_pose`：
+
+```bash
+ros2 topic pub --once /box_pose geometry_msgs/msg/PoseStamped "{header: {frame_id: base_link}, pose: {position: {x: 0.8994, y: -0.0327, z: 1.1000}, orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}}}"
+```
+
+然后调用规划服务：
+
+```bash
+ros2 service call /plan_and_send_grasp_trajectory std_srvs/srv/Trigger "{}"
+```
+
+如果想持续发测试位姿，便于反复观察 RViz 中的轨迹变化，可用：
+
+```bash
+ros2 topic pub -r 1 /box_pose geometry_msgs/msg/PoseStamped "{header: {frame_id: base_link}, pose: {position: {x: 0.8994, y: -0.0327, z: 1.1000}, orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}}}"
+```
+
+如果想确认消息是否已经收到，可执行：
+
+```bash
+ros2 topic echo /box_pose
+```
+
+注意：
+
+- `ros2 service call /plan_and_send_grasp_trajectory ...` 最好在 launch 启动 1 到 2 秒后再执行，确保已经收到 `mobile_manipulator_mpc_observation`
+- `box_pose.header.frame_id` 必须与当前规划基座一致，默认是 `base_link`
+- 如果只看到“抬起”而没有明显横向搬运，优先检查 `transport_offset_x/y/z` 是否和当前箱子中心几乎相同
+
 ## 6. 默认配置说明
 
 - 机器人：`gensong_wheel_outfit.urdf`

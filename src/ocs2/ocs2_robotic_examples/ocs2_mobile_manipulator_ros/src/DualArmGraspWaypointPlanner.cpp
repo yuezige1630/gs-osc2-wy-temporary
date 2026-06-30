@@ -98,6 +98,7 @@ class DualArmGraspWaypointPlanner final {
     dtPrePlaceToPlace_ = node_->declare_parameter<double>("dt_pre_place_to_place", 1.0);
     dtPlaceToRelease_ = node_->declare_parameter<double>("dt_place_to_release", 0.5);
     dtReleaseToPostReleaseRetreat_ = node_->declare_parameter<double>("dt_release_to_post_release_retreat", 1.0);
+    dtPostReleaseRetreatToHome_ = node_->declare_parameter<double>("dt_post_release_retreat_to_home", 1.0);
     prePlaceHeight_ = node_->declare_parameter<double>("pre_place_height", 0.10);
     postReleaseRetreatDistance_ = node_->declare_parameter<double>("post_release_retreat_distance", 0.15);
     postReleaseRetreatHeight_ = node_->declare_parameter<double>("post_release_retreat_height", 0.05);
@@ -429,6 +430,8 @@ class DualArmGraspWaypointPlanner final {
       PoseData place;
       PoseData release;
       PoseData postReleaseRetreat;
+      PoseData returnHome;
+      returnHome = currentPoses[armIndex];
 
       if (maintainRigidGraspAfterContact_) {
         retreat.orientation = graspPoses[armIndex].orientation;
@@ -447,8 +450,6 @@ class DualArmGraspWaypointPlanner final {
         place.position = placeBoxCenter + graspOffsets[armIndex];
 
         release = place;
-
-        postReleaseRetreat = currentPoses[armIndex];
       } else {
         const Eigen::Vector3d approachDirection = getApproachDirection(armIndex, snapshot.boxPose, graspPoses[armIndex]);
         retreat.orientation = graspPoses[armIndex].orientation;
@@ -472,8 +473,22 @@ class DualArmGraspWaypointPlanner final {
         place.position.z() = std::max(placeBoxCenter.z() + graspOffsets[armIndex].z(), minTableClearance_);
 
         release = place;
+      }
 
-        postReleaseRetreat = currentPoses[armIndex];
+      if (enablePlaceStage_) {
+        PoseData placeBoxPose = snapshot.boxPose;
+        placeBoxPose.position = placeBoxCenter;
+        const Eigen::Vector3d postReleaseDirection = -getApproachDirection(armIndex, placeBoxPose, release);
+        if (!isFinite(postReleaseDirection) || postReleaseDirection.norm() < 1e-9) {
+          errorMessage = armIndex == 0 ? "Left post-release retreat direction is invalid."
+                                       : "Right post-release retreat direction is invalid.";
+          return false;
+        }
+
+        postReleaseRetreat.orientation = release.orientation;
+        postReleaseRetreat.position = release.position + postReleaseRetreatDistance_ * postReleaseDirection;
+        postReleaseRetreat.position.z() =
+            std::max({release.position.z() + postReleaseRetreatHeight_, clearanceBaseZ, minTableClearance_});
       }
 
       retreatPoses[armIndex] = retreat;
@@ -494,6 +509,7 @@ class DualArmGraspWaypointPlanner final {
         poses.push_back(place);
         poses.push_back(release);
         poses.push_back(postReleaseRetreat);
+        poses.push_back(returnHome);
       }
 
       for (const auto& pose : poses) {
@@ -542,6 +558,7 @@ class DualArmGraspWaypointPlanner final {
       timeOffsets.push_back(timeOffsets.back() + dtPrePlaceToPlace_);
       timeOffsets.push_back(timeOffsets.back() + dtPlaceToRelease_);
       timeOffsets.push_back(timeOffsets.back() + dtReleaseToPostReleaseRetreat_);
+      timeOffsets.push_back(timeOffsets.back() + dtPostReleaseRetreatToHome_);
     }
 
     if (armWaypoints[0].size() != timeOffsets.size() || armWaypoints[1].size() != timeOffsets.size()) {
@@ -655,6 +672,7 @@ class DualArmGraspWaypointPlanner final {
   double dtPrePlaceToPlace_ = 1.0;
   double dtPlaceToRelease_ = 0.5;
   double dtReleaseToPostReleaseRetreat_ = 1.0;
+  double dtPostReleaseRetreatToHome_ = 1.0;
   double prePlaceHeight_ = 0.10;
   double postReleaseRetreatDistance_ = 0.15;
   double postReleaseRetreatHeight_ = 0.05;
