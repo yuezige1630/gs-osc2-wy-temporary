@@ -35,8 +35,8 @@ model_information {
 
   ; end-effector frames of the robot (from URDF)
   eeFrames {
-    [0] "wrist3_left_link"
-    [1] "wrist3_right_link"
+    [0] "handboard_left"
+    [1] "handboard_right"
   }
 }
 

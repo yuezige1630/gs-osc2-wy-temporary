@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="3">
-  <name>gsrobot_description</name>
+  <name>gensong_wheel_outfit_description</name>
   <version>0.1.0</version>
   <description>Gensong 机器人模型与描述文件包</description>
   <maintainer email="you@example.com">Your Name</maintainer>

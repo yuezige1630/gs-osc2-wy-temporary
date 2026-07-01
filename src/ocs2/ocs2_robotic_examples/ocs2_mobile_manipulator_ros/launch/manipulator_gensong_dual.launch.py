@@ -18,7 +18,7 @@ def generate_launch_description():
         launch.actions.DeclareLaunchArgument(
             name='urdfFile',
             default_value=get_package_share_directory('ocs2_robotic_assets') +
-                          '/resources/gensong_wheel_outfit_cover/urdf/gensong_wheel_outfit.urdf'
+                          '/resources/gensong_board/urdf/gensong_board.urdf'
         ),
         launch.actions.DeclareLaunchArgument(
             name='taskFile',

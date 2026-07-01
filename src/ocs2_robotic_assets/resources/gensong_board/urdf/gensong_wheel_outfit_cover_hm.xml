@@ -1,0 +1,499 @@
+<mujoco model="chasudipanjiqiren22">
+  <include file="./common/skybox.xml" />
+  <include file="./common/visual.xml" />
+  <include file="./common/materials.xml" />
+  <compiler angle="radian" meshdir="../meshes"/>
+
+  <!-- <option solver="Newton" iterations="100" ls_iterations="50" impratio="20"/> -->
+  <!-- 时间步长和积分器，防止底盘抖动 -->
+  <option timestep="0.002" integrator="implicitfast" />
+
+  <default>
+    <default class="collision_capsule">
+      <geom type="capsule" density="0" contype="2" conaffinity="1" group="5" rgba="0.2 0.8 0.2 0.15" />
+    </default>
+    <default class="collision_cylinder">
+      <geom type="cylinder" density="0" contype="2" conaffinity="1" group="5" rgba="0.2 0.8 0.2 0.15" />
+    </default>
+    <default class="collision_box">
+      <geom type="box" density="0" contype="2" conaffinity="1" group="5" rgba="0.2 0.8 0.2 0.15" />
+    </default>
+    <default class="visual_mesh">
+      <geom contype="0" conaffinity="0" group="1" />
+    </default>
+
+    <default class="motor_hub_8in_10nm">
+      <joint armature="0.00681686" damping="0.0100" frictionloss="0.09598" />
+    </default>
+
+    <default class="passive_wheel">
+      <joint armature="0.001" damping="0.001" frictionloss="0.001" />
+    </default>
+
+    <default class="motor_cra_ri100_120_pro_2_101_b_2e_ec">
+      <joint armature="4.44817" damping="19.365" frictionloss="11.2555" />
+    </default>
+
+    <default class="motor_cra_ri70_80_pro_2_101_2e_ec_b1">
+      <joint armature="0.52164" damping="2.32029" frictionloss="4.036" />
+    </default>
+
+    <default class="motor_cra_ri80_97_pro_2_101_2e_ec_b1">
+      <joint armature="1.42947" damping="13.06683" frictionloss="10.08" />
+    </default>
+
+    <default class="motor_cra_ri60_70_pro_2_101_2e_ec_b2">
+      <joint armature="0.379323" damping="2.169649" frictionloss="2.81043" />
+    </default>
+
+    <default class="motor_cra_ri50_60_pro_2_81_2e_ec_b1">
+      <joint armature="0.08449156" damping="1.0049176" frictionloss="1.26126" />
+    </default>
+
+    <default class="hand_joint">
+      <joint armature="0.0005" damping="0.03" frictionloss="0.015" />
+    </default>
+
+    <default class="dexterous_hand_joint">
+      <joint armature="0.0001" damping="0.01" frictionloss="0.001" />
+    </default>
+
+    <!-- 任冠宇：54-60 轨迹点可视化 -->
+    <!-- <default class="trajectory_point">
+      <geom type="sphere" size="0.01" rgba="1 0 0 0.7" contype="0" conaffinity="0" />
+    </default>
+
+    <default class="eef_marker">
+      <geom type="sphere" size="0.02" contype="0" conaffinity="0" />
+    </default> -->
+  </default>
+
+  <asset>
+    <mesh name="base_link" file="base_link.STL"/>
+    <mesh name="wheel_drive_left_link" file="wheel_drive_left_link.STL"/>
+    <mesh name="wheel_drive_right_link" file="wheel_drive_right_link.STL"/>
+    <mesh name="wheel_driven_left_link" file="wheel_driven_left_link.STL"/>
+    <mesh name="wheel_driven_right_link" file="wheel_driven_right_link.STL"/>
+    <mesh name="leg_low_link" file="leg_low_link.STL"/>
+    <mesh name="leg_up_link" file="leg_up_link.STL"/>
+    <mesh name="waist_low_link" file="waist_low_link.STL"/>
+    <mesh name="waist_up_link" file="waist_up_link.STL"/>
+    <mesh name="chest_link" file="chest_link.STL"/>
+    <mesh name="arm1_left_link" file="arm1_left_link.STL"/>
+    <mesh name="arm2_left_link" file="arm2_left_link.STL"/>
+    <mesh name="arm3_left_link" file="arm3_left_link.STL"/>
+    <mesh name="arm4_left_link" file="arm4_left_link.STL"/>
+    <mesh name="wrist1_left_link" file="wrist1_left_link.STL"/>
+    <mesh name="wrist2_left_link" file="wrist2_left_link.STL"/>
+    <mesh name="wrist3_left_link" file="wrist3_left_link.STL"/>
+    <mesh name="camera_wrist_left_link" file="camera_wrist_left_link.STL"/>
+    <mesh name="arm1_right_link" file="arm1_right_link.STL"/>
+    <mesh name="arm2_right_link" file="arm2_right_link.STL"/>
+    <mesh name="arm3_right_link" file="arm3_right_link.STL"/>
+    <mesh name="arm4_right_link" file="arm4_right_link.STL"/>
+    <mesh name="wrist1_right_link" file="wrist1_right_link.STL"/>
+    <mesh name="wrist2_right_link" file="wrist2_right_link.STL"/>
+    <mesh name="wrist3_right_link" file="wrist3_right_link.STL"/>
+    <mesh name="camera_wrist_right_link" file="camera_wrist_right_link.STL"/>
+    <mesh name="camera_head_link" file="camera_head_link.STL"/>
+    <mesh name="hand_base_link" file="hand_base_link.STL"/>
+    <mesh name="thumb_metacarpals_base2" file="thumb_metacarpals_base2.STL"/>
+    <mesh name="thumb_metacarpals" file="thumb_metacarpals.STL"/>
+    <mesh name="thumb_distal" file="thumb_distal.STL"/>
+    <mesh name="index_proximal" file="index_proximal.STL"/>
+    <mesh name="index_distal" file="index_distal.STL"/>
+    <mesh name="middle_proximal" file="middle_proximal.STL"/>
+    <mesh name="middle_distal" file="middle_distal.STL"/>
+    <mesh name="ring_proximal" file="ring_proximal.STL"/>
+    <mesh name="ring_distal" file="ring_distal.STL"/>
+    <mesh name="pinky_proximal" file="pinky_proximal.STL"/>
+    <mesh name="pinky_distal" file="pinky_distal.STL"/>
+    <mesh name="hand_base_right_link" file="hand_base_right_link.STL"/>
+    <mesh name="thumb_metacarpals_right_base2" file="thumb_metacarpals_right_base2.STL"/>
+    <mesh name="thumb_metacarpals_right" file="thumb_metacarpals_right.STL"/>
+    <mesh name="thumb_distal_right" file="thumb_distal_right.STL"/>
+    <mesh name="index_proximal_right" file="index_proximal_right.STL"/>
+    <mesh name="index_distal_right" file="index_distal_right.STL"/>
+    <mesh name="middle_proximal_right" file="middle_proximal_right.STL"/>
+    <mesh name="middle_distal_right" file="middle_distal_right.STL"/>
+    <mesh name="ring_proximal_right" file="ring_proximal_right.STL"/>
+    <mesh name="ring_distal_right" file="ring_distal_right.STL"/>
+    <mesh name="pinky_proximal_right" file="pinky_proximal_right.STL"/>
+    <mesh name="pinky_distal_right" file="pinky_distal_right.STL"/>
+  </asset>
+
+  <equality>
+    <!-- 说明：mocap_weld 是一个虚拟的关节，用于将 mocap 节点与 chest_link 节点连接起来，无相对运动，全部锁定在初始位置 -->
+    <!-- <weld name="mocap_weld" body1="mocap" body2="chest_link" /> -->
+    <joint joint1="thumb_cmc_pitch" joint2="thumb_ip" polycoef="0 1.86 0 0 0" />
+    <joint joint1="index_mcp_pitch" joint2="index_dip" polycoef="0 0.89 0 0 0" />
+    <joint joint1="middle_mcp_pitch" joint2="middle_dip" polycoef="0 0.89 0 0 0" />
+    <joint joint1="ring_mcp_pitch" joint2="ring_dip" polycoef="0 0.89 0 0 0" />
+    <joint joint1="pinky_mcp_pitch" joint2="pinky_dip" polycoef="0 0.89 0 0 0" />
+    <joint joint1="thumb_cmc_pitch_right" joint2="thumb_ip_right" polycoef="0 1.86 0 0 0" />
+    <joint joint1="index_mcp_pitch_right" joint2="index_dip_right" polycoef="0 0.89 0 0 0" />
+    <joint joint1="middle_mcp_pitch_right" joint2="middle_dip_right" polycoef="0 0.89 0 0 0" />
+    <joint joint1="ring_mcp_pitch_right" joint2="ring_dip_right" polycoef="0 0.89 0 0 0" />
+    <joint joint1="pinky_mcp_pitch_right" joint2="pinky_dip_right" polycoef="0 0.89 0 0 0" />
+  </equality>
+
+  <actuator>
+    <motor name="motor_wheel_drive_left_joint" joint="wheel_drive_left_joint" ctrllimited="true" ctrlrange="-169 169" gear="1"/>
+    <motor name="motor_wheel_drive_right_joint" joint="wheel_drive_right_joint" ctrllimited="true" ctrlrange="-169 169" gear="1"/>
+
+    <motor name="motor_leg_low_joint" joint="leg_low_joint" ctrllimited="true" ctrlrange="-169 169" gear="1"/>
+    <motor name="motor_leg_up_joint" joint="leg_up_joint" ctrllimited="true" ctrlrange="-169 169" gear="1"/>
+    <motor name="motor_waist_low_joint" joint="waist_low_joint" ctrllimited="true" ctrlrange="-169 169" gear="1"/>
+    <motor name="motor_waist_up_joint" joint="waist_up_joint" ctrllimited="true" ctrlrange="-169 169" gear="1"/>
+    <motor name="motor_chest_joint" joint="chest_joint" ctrllimited="true" ctrlrange="-169 169" gear="1"/>
+
+    <motor name="motor_arm1_left_joint" joint="arm1_left_joint" ctrllimited="true" ctrlrange="-169 169" gear="1"/>
+    <motor name="motor_arm2_left_joint" joint="arm2_left_joint" ctrllimited="true" ctrlrange="-169 169" gear="1"/>
+    <motor name="motor_arm3_left_joint" joint="arm3_left_joint" ctrllimited="true" ctrlrange="-169 169" gear="1"/>
+    <motor name="motor_arm4_left_joint" joint="arm4_left_joint" ctrllimited="true" ctrlrange="-169 169" gear="1"/>
+    <motor name="motor_wrist1_left_joint" joint="wrist1_left_joint" ctrllimited="true" ctrlrange="-169 169" gear="1"/>
+    <motor name="motor_wrist2_left_joint" joint="wrist2_left_joint" ctrllimited="true" ctrlrange="-169 169" gear="1"/>
+    <motor name="motor_wrist3_left_joint" joint="wrist3_left_joint" ctrllimited="true" ctrlrange="-169 169" gear="1"/>
+    <motor name="motor_thumb_cmc_yaw" joint="thumb_cmc_yaw" ctrllimited="true" ctrlrange="-169 169" gear="1"/>
+    <motor name="motor_thumb_cmc_pitch" joint="thumb_cmc_pitch" ctrllimited="true" ctrlrange="-169 169" gear="1"/>
+    <motor name="motor_index_mcp_pitch" joint="index_mcp_pitch" ctrllimited="true" ctrlrange="-169 169" gear="1"/>
+    <motor name="motor_middle_mcp_pitch" joint="middle_mcp_pitch" ctrllimited="true" ctrlrange="-169 169" gear="1"/>
+    <motor name="motor_ring_mcp_pitch" joint="ring_mcp_pitch" ctrllimited="true" ctrlrange="-169 169" gear="1"/>
+    <motor name="motor_pinky_mcp_pitch" joint="pinky_mcp_pitch" ctrllimited="true" ctrlrange="-169 169" gear="1"/>
+
+    <motor name="motor_arm1_right_joint" joint="arm1_right_joint" ctrllimited="true" ctrlrange="-169 169" gear="1"/>
+    <motor name="motor_arm2_right_joint" joint="arm2_right_joint" ctrllimited="true" ctrlrange="-169 169" gear="1"/>
+    <motor name="motor_arm3_right_joint" joint="arm3_right_joint" ctrllimited="true" ctrlrange="-169 169" gear="1"/>
+    <motor name="motor_arm4_right_joint" joint="arm4_right_joint" ctrllimited="true" ctrlrange="-169 169" gear="1"/>
+    <motor name="motor_wrist1_right_joint" joint="wrist1_right_joint" ctrllimited="true" ctrlrange="-169 169" gear="1"/>
+    <motor name="motor_wrist2_right_joint" joint="wrist2_right_joint" ctrllimited="true" ctrlrange="-169 169" gear="1"/>
+    <motor name="motor_wrist3_right_joint" joint="wrist3_right_joint" ctrllimited="true" ctrlrange="-169 169" gear="1"/>
+    <motor name="motor_thumb_cmc_yaw_right" joint="thumb_cmc_yaw_right" ctrllimited="true" ctrlrange="-169 169" gear="1"/>
+    <motor name="motor_thumb_cmc_pitch_right" joint="thumb_cmc_pitch_right" ctrllimited="true" ctrlrange="-169 169" gear="1"/>
+    <motor name="motor_index_mcp_pitch_right" joint="index_mcp_pitch_right" ctrllimited="true" ctrlrange="-169 169" gear="1"/>
+    <motor name="motor_middle_mcp_pitch_right" joint="middle_mcp_pitch_right" ctrllimited="true" ctrlrange="-169 169" gear="1"/>
+    <motor name="motor_ring_mcp_pitch_right" joint="ring_mcp_pitch_right" ctrllimited="true" ctrlrange="-169 169" gear="1"/>
+    <motor name="motor_pinky_mcp_pitch_right" joint="pinky_mcp_pitch_right" ctrllimited="true" ctrlrange="-169 169" gear="1"/>
+  </actuator>
+
+  <sensor>
+    <framequat name="imu_quat" objtype="body" objname="base_link" />
+    <gyro name="imu_gyro" site="imu" />
+    <accelerometer name="imu_accel" site="imu" />
+  </sensor>
+
+  <worldbody>
+    <geom name="floor" size="0 0 0.01" type="plane" material="grid" contype="1" conaffinity="0" priority="1" friction="0.6" condim="3" />
+    <body name="mocap" mocap="true" pos="0 0 1.0">
+      <geom name="mocap_vis" type="sphere" size="0.08" rgba="0 1 0 1" contype="0" conaffinity="0" mass="0"/>
+    </body>
+    <body name="base_link" gravcomp="1">
+      <!-- <freejoint name="base_joint"/> -->
+      <joint name="base_x" type="slide" axis="1 0 0" />
+      <joint name="base_y" type="slide" axis="0 1 0" />
+      <joint name="base_yaw" type="hinge" axis="0 0 1" />
+      <site name="imu" pos="0 0 0.1" size="0.01" />
+      <geom type="mesh" rgba="0.776471 0.756863 0.737255 1" mesh="base_link" class="visual_mesh" />
+      <body name="wheel_drive_left_link" pos="-0.225 0.2917 0.1">
+        <inertial pos="8.24193e-09 -0.0478513 -4.87464e-06" quat="0.707107 -3.38406e-06 3.38406e-06 0.707107" mass="9.59256" diaginertia="0.0579855 0.0320438 0.0320433" />
+        <joint class="motor_hub_8in_10nm" name="wheel_drive_left_joint" pos="0 0 0" axis="0 -1 0" actuatorfrcrange="-10 10" />
+        <geom type="mesh" rgba="0.776471 0.756863 0.737255 1" mesh="wheel_drive_left_link" class="visual_mesh" />
+        <geom name="wheel_drive_left_link_collision" class="collision_cylinder" pos="0 0 0" size="0.10 0.0345" quat="0.707107 0.707107 0 0" />
+      </body>
+      <body name="wheel_drive_right_link" pos="-0.225 -0.2917 0.1">
+        <inertial pos="-9.25108e-09 0.0478513 -4.87478e-06" quat="0.707107 3.38405e-06 -3.38405e-06 0.707107" mass="9.59256" diaginertia="0.0579855 0.0320438 0.0320433" />
+        <joint class="motor_hub_8in_10nm" name="wheel_drive_right_joint" pos="0 0 0" axis="0 1 0" actuatorfrcrange="-10 10" />
+        <geom type="mesh" rgba="0.776471 0.756863 0.737255 1" mesh="wheel_drive_right_link" class="visual_mesh" />
+        <geom name="wheel_drive_right_link_collision" class="collision_cylinder" pos="0 0 0" size="0.10 0.0345" quat="0.707107 0.707107 0 0" />
+      </body>
+      <body name="wheel_driven_left_link" pos="0.266 0.2565 0.075">
+        <inertial pos="-5.5965e-07 -0.0255 3.1931e-06" quat="0.704353 -0.0623076 -0.062307 0.70436" mass="0.414371" diaginertia="0.00117728 0.00066163 0.000661564" />
+        <joint class="passive_wheel" name="wheel_driven_left_joint" pos="0 0 0" axis="0 1 0" />
+        <geom type="mesh" rgba="0.776471 0.756863 0.737255 1" mesh="wheel_driven_left_link" class="visual_mesh" />
+        <geom name="wheel_driven_left_link_collision" class="collision_cylinder" pos="0 0 0" size="0.075 0.025" quat="0.707107 0.707107 0 0" friction="0.001 0.001 0.0001" priority="1" />
+      </body>
+      <body name="wheel_driven_right_link" pos="0.266 -0.2565 0.075">
+        <inertial pos="-5.59648e-07 0.0255 3.1931e-06" quat="0.704353 -0.0623074 -0.0623068 0.70436" mass="0.414371" diaginertia="0.00117728 0.00066163 0.000661564" />
+        <joint class="passive_wheel" name="wheel_driven_right_joint" pos="0 0 0" axis="0 -1 0" />
+        <geom type="mesh" rgba="0.776471 0.756863 0.737255 1" mesh="wheel_driven_right_link" class="visual_mesh" />
+        <geom name="wheel_driven_right_link_collision" class="collision_cylinder" pos="0 0 0" size="0.075 0.025" quat="0.707107 0.707107 0 0" friction="0.001 0.001 0.0001" priority="1" />
+      </body>
+      <body name="leg_low_link" pos="0.188 0 0.129" euler="0 1.1429 0">
+        <inertial pos="-0.216883 0.00795825 0.0581166" quat="0.430053 0.56144 0.5611 0.430124" mass="16.5305" diaginertia="0.169982 0.153708 0.0378554" />
+        <joint class="motor_cra_ri100_120_pro_2_101_b_2e_ec" name="leg_low_joint" pos="0 0 0" axis="0 -1 0" range="0 1.1429" actuatorfrcrange="-267 267" />
+        <geom type="mesh" rgba="0.776471 0.756863 0.737255 1" mesh="leg_low_link" class="visual_mesh" />
+        <geom name="leg_low_link_collision" class="collision_cylinder" pos="-0.20 0 0.05" size="0.08 0.15" quat="0.833886 0 -0.551937 0" />
+        <body name="leg_up_link" pos="-0.40034 0 0.1705" euler="0 -2.4871 0">
+          <inertial pos="0.185202 -0.00582701 0.0144454" quat="0.538258 0.458316 0.457474 0.539391" mass="5.79714" diaginertia="0.0853096 0.0793642 0.00604006" />
+          <joint class="motor_cra_ri100_120_pro_2_101_b_2e_ec" name="leg_up_joint" pos="0 0 0" axis="0 1 0" range="0 2.4871" actuatorfrcrange="-267 267" />
+          <geom type="mesh" rgba="0.776471 0.756863 0.737255 1" mesh="leg_up_link" class="visual_mesh" />
+          <geom name="leg_up_link_collision" class="collision_cylinder" pos="0.2 0 0.02" size="0.08 0.125" quat="0.782608 0 0.622515 0" />
+          <body name="waist_low_link" pos="0.36788 0 0.07353" euler="0 1.344 0">
+            <inertial pos="0.00355966 0.0140912 0.000333803" quat="-0.000160453 0.705904 -5.80179e-05 0.708307" mass="3.37968" diaginertia="0.0192947 0.0140475 0.012466" />
+            <joint class="motor_cra_ri100_120_pro_2_101_b_2e_ec" name="waist_low_joint" pos="0 0 0" axis="0 -1 0" range="-1.5707 1.344" actuatorfrcrange="-267 267" />
+            <geom type="mesh" rgba="0.776471 0.756863 0.737255 1" mesh="waist_low_link" class="visual_mesh" />
+            <body name="waist_up_link">
+              <inertial pos="-0.0128846 -7.7855e-05 0.080895" quat="0.585878 0.39331 0.380962 0.59743" mass="4.10711" diaginertia="0.00850542 0.00809638 0.0054636" />
+              <joint class="motor_cra_ri70_80_pro_2_101_2e_ec_b1" name="waist_up_joint" pos="0 0 0" axis="1 0 -0.00029476" range="-0.17453 0.17453" actuatorfrcrange="-61 61" />
+              <geom type="mesh" rgba="0.776471 0.756863 0.737255 1" mesh="waist_up_link" class="visual_mesh" />
+              <body name="chest_link" pos="6.0573e-05 0 0.2055">
+                <inertial pos="-0.000107273 6.21728e-05 0.108904" quat="0.707093 0.70712 -7.07527e-05 -7.075e-05" mass="4.35938" diaginertia="0.0480061 0.0318721 0.0241076" />
+                <joint class="motor_cra_ri70_80_pro_2_101_2e_ec_b1" name="chest_joint" pos="0 0 0" axis="0.00029476 0 1" range="-2.618 2.618" actuatorfrcrange="-61 61" />
+                <geom type="mesh" rgba="0.776471 0.756863 0.737255 1" mesh="chest_link" class="visual_mesh" />
+                <geom name="chest_link_collision" class="collision_cylinder" pos="0 0 0.035" size="0.08 0.14" />
+                <body name="camera_head_link" pos="0.078342 0.00014174 0.45535">
+                  <geom type="mesh" rgba="0.752941 0.752941 0.752941 1" mesh="camera_head_link" class="visual_mesh" density="0" />
+                  <geom name="camera_head_link_collision" type="sphere" size="0.10" pos="-0.05 0 0" contype="2" conaffinity="1" group="5" rgba="0.2 0.8 0.2 0.15" />
+                </body>
+                <body name="arm1_left_link" pos="6.2489e-05 0.1198 0.212">
+                  <inertial pos="-0.00490407 0.115364 0.00207816" quat="0.883501 0.412231 0.0782706 0.208243" mass="1.94505" diaginertia="0.00499504 0.00391991 0.00354741" />
+                  <joint class="motor_cra_ri80_97_pro_2_101_2e_ec_b1" name="arm1_left_joint" pos="0 0 0" axis="0 1 0" range="-3.1416 3.1416" actuatorfrcrange="-133 133" />
+                  <geom type="mesh" rgba="0.776471 0.756863 0.737255 1" mesh="arm1_left_link" class="visual_mesh" />
+                  <geom name="arm1_left_link_collision" type="sphere" pos="0 0.03 0" size="0.05" contype="2" conaffinity="1" group="5" rgba="0.2 0.8 0.2 0.15" />
+                  <body name="arm2_left_link" pos="0 0.088 -0.012">
+                    <inertial pos="0.0330627 -1.42152e-07 -0.0523208" quat="0.998227 -1.37517e-06 -0.0595176 -8.19921e-08" mass="2.04686" diaginertia="0.00530401 0.00442373 0.00199398" />
+                    <joint class="motor_cra_ri80_97_pro_2_101_2e_ec_b1" name="arm2_left_joint" pos="0 0 0" axis="1 0 -0.00029476" range="0 1.5708" actuatorfrcrange="-133 133" />
+                    <geom type="mesh" rgba="0.776471 0.756863 0.737255 1" mesh="arm2_left_link" class="visual_mesh" />
+                    <body name="arm3_left_link" pos="-4.0824e-05 0 -0.1385">
+                      <inertial pos="-0.00234522 0.00580699 -0.121581" quat="0.710948 0.019098 -0.0218375 0.702646" mass="1.80516" diaginertia="0.00554553 0.00505887 0.00131662" />
+                      <joint class="motor_cra_ri60_70_pro_2_101_2e_ec_b2" name="arm3_left_joint" pos="0 0 0" axis="0.00029476 0 1" range="-3.1416 3.1416" actuatorfrcrange="-49 49" />
+                      <geom type="mesh" rgba="0.776471 0.756863 0.737255 1" mesh="arm3_left_link" class="visual_mesh" />
+                      <geom name="arm3_left_link_collision" class="collision_cylinder" pos="0 0 0" size="0.03 0.075" />
+                      <body name="arm4_left_link" pos="-4.7604e-05 0 -0.1615">
+                        <inertial pos="0.0516623 -0.0284538 -0.00627632" quat="0.526714 0.599425 0.453053 0.397499" mass="1.52564" diaginertia="0.00271057 0.00234706 0.00106941" />
+                        <joint class="motor_cra_ri70_80_pro_2_101_2e_ec_b1" name="arm4_left_joint" pos="0 0 0" axis="0 -1 0" range="-1.5708 0.7854" actuatorfrcrange="-61 61" />
+                        <geom type="mesh" rgba="0.776471 0.756863 0.737255 1" mesh="arm4_left_link" class="visual_mesh" />
+                        <geom name="arm4_left_link_collision" class="collision_cylinder" pos="0.1 0 0" size="0.03 0.075" quat="0.707107 0 0.707107 0" />
+                        <body name="wrist1_left_link" pos="0.1215 0 -0.010036">
+                          <inertial pos="0.02372 0.020072 -4.0793e-08" quat="0.290978 0.290961 0.644475 0.644457" mass="0.12404" diaginertia="0.000130333 0.00011686 7.35786e-05"/>
+                          <joint class="motor_cra_ri50_60_pro_2_81_2e_ec_b1" name="wrist1_left_joint" pos="0 0 0" axis="1 0 -0.00029476" range="-1.5708 1.5708" actuatorfrcrange="-13.5 13.5" />
+                          <geom type="mesh" rgba="0.1098 0.1098 0.1098 1" mesh="wrist1_left_link" class="visual_mesh" />
+                          <body name="wrist2_left_link" pos="0.0534 0.037 -1.574e-05">
+                            <inertial pos="0.0314999 -0.0371062 0.00274374" quat="0.269669 0.653665 0.271732 0.652811" mass="0.913064" diaginertia="0.000521212 0.000521154 0.000425542"/>
+                            <joint class="motor_cra_ri50_60_pro_2_81_2e_ec_b1" name="wrist2_left_joint" pos="0 0 0" axis="0 1 0" range="-1.5708 1.5708" actuatorfrcrange="-13.5 13.5" />
+                            <geom type="mesh" rgba="0.752941 0.752941 0.752941 1" mesh="wrist2_left_link" class="visual_mesh" />
+                            <body name="wrist3_left_link" pos="0.063012 -0.03685 0.039831">
+                              <inertial pos="0.0318667 -0.00104552 -0.00414579" quat="0.734866 0.0676081 0.0406739 0.673607" mass="0.160515" diaginertia="0.000166863 0.000143072 0.000110951"/>
+                              <joint class="motor_cra_ri50_60_pro_2_81_2e_ec_b1" name="wrist3_left_joint" pos="0 0 0" axis="0.00029476 0 1" range="-1.5708 1.5708" actuatorfrcrange="-13.5 13.5" />
+                              <geom type="mesh" rgba="0.866667 0.866667 0.890196 1" mesh="wrist3_left_link" class="visual_mesh" />
+                              <body name="camera_wrist_left_link" pos="0.020515 -0.001 0.051994">
+                                <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="camera_wrist_left_link" class="visual_mesh" density="0" />
+                              </body>
+
+                              <geom pos="0.046 0 -0.04" quat="0.5 -0.5 0.5 -0.5" type="mesh" rgba="1 1 1 1" mesh="hand_base_link" class="visual_mesh" />
+                              <geom name="hand_base_link_collision" pos="0.046 0 -0.04" quat="0.5 -0.5 0.5 -0.5" type="mesh" mesh="hand_base_link" contype="2" conaffinity="1" group="5" rgba="0.2 0.8 0.2 0.15" />
+                              <body name="thumb_metacarpals_base2" pos="0.078794 -0.011508 -0.017025" quat="0.5 -0.5 0.5 -0.5">
+                                <inertial pos="0.00162801 -0.0027668 -0.00184234" quat="0.95557 0.0704946 0.0577435 -0.280324" mass="0.00138588" diaginertia="5.55452e-08 4.61537e-08 2.80475e-08"/>
+                                <joint class="hand_joint" name="thumb_cmc_yaw" pos="0 0 0" axis="0 0 1" range="0 1.36" actuatorfrcrange="-5 5" />
+                                <geom type="mesh" rgba="1 1 1 1" mesh="thumb_metacarpals_base2" class="visual_mesh" />
+                                <geom name="thumb_metacarpals_base2_collision" type="mesh" mesh="thumb_metacarpals_base2" contype="2" conaffinity="1" group="5" rgba="0.2 0.8 0.2 0.15" />
+                                <body name="thumb_metacarpals" pos="0.0061649 -0.010678 -0.004891" quat="0.4192 0.472029 -0.272524 0.726079">
+                                  <inertial pos="4.24816e-05 1.74184e-05 0.0228342" quat="0.687381 0.164586 0.164979 0.687896" mass="0.0123382" diaginertia="1.76758e-06 1.16101e-06 8.78263e-07"/>
+                                  <joint class="hand_joint" name="thumb_cmc_pitch" pos="0 0 0" axis="0 1 0" range="0 0.58" actuatorfrcrange="-5 5" />
+                                  <geom type="mesh" rgba="1 1 1 1" mesh="thumb_metacarpals" class="visual_mesh" />
+                                  <geom name="thumb_metacarpals_collision" type="mesh" mesh="thumb_metacarpals" contype="2" conaffinity="1" group="5" rgba="0.2 0.8 0.2 0.15" />
+                                  <body name="thumb_distal" pos="0.0037776 0 0.045368">
+                                    <inertial pos="-0.00413726 -5.90705e-08 0.0230114" quat="0.999396 -5.35438e-07 0.0347488 -7.14454e-05" mass="0.00763333" diaginertia="1.31076e-06 1.22489e-06 2.72262e-07"/>
+                                    <joint class="hand_joint" name="thumb_ip" pos="0 0 0" axis="0 1 0" range="0 1.08" actuatorfrcrange="-5 5" />
+                                    <geom type="mesh" rgba="1 1 1 1" mesh="thumb_distal" class="visual_mesh" />
+                                    <geom name="thumb_distal_collision" type="mesh" mesh="thumb_distal" contype="2" conaffinity="1" group="5" rgba="0.2 0.8 0.2 0.15" />
+                                  </body>
+                                </body>
+                              </body>
+                              <body name="index_proximal" pos="0.144779 -0.00247577 -0.01581" quat="0.512917 -0.48674 0.48674 -0.512917">
+                                <inertial pos="-0.00208657 2.53839e-06 0.0172735" quat="0.993743 -0.000676577 0.111224 -0.0101332" mass="0.00253175" diaginertia="2.75761e-07 2.72913e-07 7.58306e-08"/>
+                                <joint class="hand_joint" name="index_mcp_pitch" pos="0 0 0" axis="0 1 0" range="0 1.6" actuatorfrcrange="-5 5" />
+                                <geom type="mesh" rgba="1 1 1 1" mesh="index_proximal" class="visual_mesh" />
+                                <geom name="index_proximal_collision" type="mesh" mesh="index_proximal" contype="2" conaffinity="1" group="5" rgba="0.2 0.8 0.2 0.15" />
+                                <body name="index_distal" pos="-0.0052516 0 0.036625">
+                                  <inertial pos="0.00658987 5.13856e-06 0.0194394" quat="0.977123 0.000534679 -0.212635 -0.00404542" mass="0.00376951" diaginertia="3.74591e-07 3.65328e-07 7.20447e-08"/>
+                                  <joint class="hand_joint" name="index_dip" pos="0 0 0" axis="0 1 0" range="0 1.43" actuatorfrcrange="-5 5" />
+                                  <geom type="mesh" rgba="1 1 1 1" mesh="index_distal" class="visual_mesh" />
+                                  <geom name="index_distal_collision" type="mesh" mesh="index_distal" contype="2" conaffinity="1" group="5" rgba="0.2 0.8 0.2 0.15" />
+                                </body>
+                              </body>
+                              <body name="middle_proximal" pos="0.1487 -0.000525726 -0.03366" quat="0.5 -0.5 0.5 -0.5">
+                                <inertial pos="-0.00208661 2.56918e-06 0.0172735" quat="0.993743 -0.00068162 0.111224 -0.0101751" mass="0.00253177" diaginertia="2.75761e-07 2.72913e-07 7.58311e-08"/>
+                                <joint class="hand_joint" name="middle_mcp_pitch" pos="0 0 0" axis="0 1 0" range="0 1.6" actuatorfrcrange="-5 5" />
+                                <geom type="mesh" rgba="1 1 1 1" mesh="middle_proximal" class="visual_mesh" />
+                                <geom name="middle_proximal_collision" type="mesh" mesh="middle_proximal" contype="2" conaffinity="1" group="5" rgba="0.2 0.8 0.2 0.15" />
+                                <body name="middle_distal" pos="-0.0052516 0 0.036625">
+                                  <inertial pos="0.00658987 5.10863e-06 0.0194393" quat="0.977123 0.000532256 -0.212635 -0.00402633" mass="0.00376953" diaginertia="3.74592e-07 3.65329e-07 7.20453e-08"/>
+                                  <joint class="hand_joint" name="middle_dip" pos="0 0 0" axis="0 1 0" range="0 1.43" actuatorfrcrange="-5 5" />
+                                  <geom type="mesh" rgba="1 1 1 1" mesh="middle_distal" class="visual_mesh" />
+                                  <geom name="middle_distal_collision" type="mesh" mesh="middle_distal" contype="2" conaffinity="1" group="5" rgba="0.2 0.8 0.2 0.15" />
+                                </body>
+                              </body>
+                              <body name="ring_proximal" pos="0.144767 -0.00102577 -0.051135" quat="0.48674 -0.512917 0.512917 -0.48674">
+                                <inertial pos="-0.00208668 2.63e-06 0.0172735" quat="0.993742 -0.000691025 0.111223 -0.0102493" mass="0.00253182" diaginertia="2.75762e-07 2.72914e-07 7.58322e-08"/>
+                                <joint class="hand_joint" name="ring_mcp_pitch" pos="0 0 0" axis="0 1 0" range="0 1.6" actuatorfrcrange="-5 5" />
+                                <geom type="mesh" rgba="1 1 1 1" mesh="ring_proximal" class="visual_mesh" />
+                                <geom name="ring_proximal_collision" type="mesh" mesh="ring_proximal" contype="2" conaffinity="1" group="5" rgba="0.2 0.8 0.2 0.15" />
+                                <body name="ring_distal" pos="-0.0052516 0 0.036625">
+                                  <inertial pos="0.00658987 5.05884e-06 0.0194394" quat="0.977123 0.000527967 -0.212637 -0.00399315" mass="0.0037695" diaginertia="3.74589e-07 3.65326e-07 7.20441e-08"/>
+                                  <joint class="hand_joint" name="ring_dip" pos="0 0 0" axis="0 1 0" range="0 1.43" actuatorfrcrange="-5 5" />
+                                  <geom type="mesh" rgba="1 1 1 1" mesh="ring_distal" class="visual_mesh" />
+                                  <geom name="ring_distal_collision" type="mesh" mesh="ring_distal" contype="2" conaffinity="1" group="5" rgba="0.2 0.8 0.2 0.15" />
+                                </body>
+                              </body>
+                              <body name="pinky_proximal" pos="0.138741 -0.00247577 -0.068372" quat="0.477715 -0.521334 0.521334 -0.477715">
+                                <inertial pos="-0.00208674 2.68062e-06 0.0172735" quat="0.993742 -0.000698628 0.111223 -0.0103096" mass="0.00253186" diaginertia="2.75762e-07 2.72915e-07 7.58331e-08"/>
+                                <joint class="hand_joint" name="pinky_mcp_pitch" pos="0 0 0" axis="0 1 0" range="0 1.6" actuatorfrcrange="-5 5" />
+                                <geom type="mesh" rgba="1 1 1 1" mesh="pinky_proximal" class="visual_mesh" />
+                                <geom name="pinky_proximal_collision" type="mesh" mesh="pinky_proximal" contype="2" conaffinity="1" group="5" rgba="0.2 0.8 0.2 0.15" />
+                                <body name="pinky_distal" pos="-0.0052516 0 0.036625">
+                                  <inertial pos="0.00658988 5.03088e-06 0.0194394" quat="0.977123 0.000523955 -0.212638 -0.00396572" mass="0.00376948" diaginertia="3.74588e-07 3.65325e-07 7.20434e-08"/>
+                                  <joint class="hand_joint" name="pinky_dip" pos="0 0 0" axis="0 1 0" range="0 1.43" actuatorfrcrange="-5 5" />
+                                  <geom type="mesh" rgba="1 1 1 1" mesh="pinky_distal" class="visual_mesh" />
+                                  <geom name="pinky_distal_collision" type="mesh" mesh="pinky_distal" contype="2" conaffinity="1" group="5" rgba="0.2 0.8 0.2 0.15" />
+                                </body>
+                              </body>
+                            </body>
+                          </body>
+                        </body>
+                      </body>
+                    </body>
+                  </body>
+                </body>
+                <body name="arm1_right_link" pos="6.2489e-05 -0.1198 0.212">
+                  <inertial pos="-0.00486924 -0.115366 0.00207423" quat="0.411156 0.884022 -0.20831 -0.0778691" mass="1.94497" diaginertia="0.0049967 0.00392037 0.00354892" />
+                  <joint class="motor_cra_ri80_97_pro_2_101_2e_ec_b1" name="arm1_right_joint" pos="0 0 0" axis="0 -1 0" range="-3.1416 3.1416" actuatorfrcrange="-133 133" />
+                  <geom type="mesh" rgba="0.776471 0.756863 0.737255 1" mesh="arm1_right_link" class="visual_mesh" />
+                  <geom name="arm1_right_link_collision" type="sphere" pos="0 -0.03 0" size="0.05" contype="2" conaffinity="1" group="5" rgba="0.2 0.8 0.2 0.15" />
+                  <body name="arm2_right_link" pos="0 -0.088 -0.012">
+                    <inertial pos="0.0330627 -1.40241e-07 -0.0523208" quat="0.998227 -1.48271e-06 -0.0595175 -8.84038e-08" mass="2.04686" diaginertia="0.00530402 0.00442373 0.00199398" />
+                    <joint class="motor_cra_ri80_97_pro_2_101_2e_ec_b1" name="arm2_right_joint" pos="0 0 0" axis="1 0 -0.00029476" range="-1.5708 0" actuatorfrcrange="-133 133" />
+                    <geom type="mesh" rgba="0.776471 0.756863 0.737255 1" mesh="arm2_right_link" class="visual_mesh" />
+                    <body name="arm3_right_link" pos="-4.0824e-05 0 -0.1385">
+                      <inertial pos="-0.00234555 -0.00580793 -0.121581" quat="0.702611 -0.0218376 0.0191002 0.710983" mass="1.80517" diaginertia="0.00554545 0.00505877 0.0013166" />
+                      <joint class="motor_cra_ri60_70_pro_2_101_2e_ec_b2" name="arm3_right_joint" pos="0 0 0" axis="0.00029476 0 1" range="-3.1416 3.1416" actuatorfrcrange="-49 49" />
+                      <geom type="mesh" rgba="0.776471 0.756863 0.737255 1" mesh="arm3_right_link" class="visual_mesh" />
+                      <geom name="arm3_right_link_collision" class="collision_cylinder" pos="0 0 0" size="0.03 0.075" />
+                      <body name="arm4_right_link" pos="-4.7604e-05 0 -0.1615">
+                        <inertial pos="0.0516623 0.0284541 -0.00627587" quat="0.397502 0.453047 0.599428 0.526712" mass="1.52564" diaginertia="0.00271058 0.00234707 0.00106942" />
+                        <joint class="motor_cra_ri70_80_pro_2_101_2e_ec_b1" name="arm4_right_joint" pos="0 0 0" axis="0 1 0" range="-0.7854 1.5708" actuatorfrcrange="-61 61" />
+                        <geom type="mesh" rgba="0.776471 0.756863 0.737255 1" mesh="arm4_right_link" class="visual_mesh" />
+                        <geom name="arm4_right_link_collision" class="collision_cylinder" pos="0.1 0 0" size="0.03 0.075" quat="0.707107 0 0.707107 0" />
+                        <body name="wrist1_right_link" pos="0.1215 0 -0.010036">
+                          <inertial pos="0.0237204 -0.0200721 4.07932e-08" quat="0.644476 0.644458 0.290976 0.29096" mass="0.124036" diaginertia="0.000130333 0.000116864 7.35789e-05"/>
+                          <joint class="motor_cra_ri50_60_pro_2_81_2e_ec_b1" name="wrist1_right_joint" pos="0 0 0" axis="1 0 -0.00029476" range="-1.5708 1.5708" actuatorfrcrange="-13.5 13.5" />
+                          <geom type="mesh" rgba="0.109804 0.109804 0.109804 1" mesh="wrist1_right_link" class="visual_mesh" />
+                          <body name="wrist2_right_link" pos="0.0534 -0.037 -1.574e-05">
+                            <inertial pos="0.0314997 0.0371062 0.00274367" quat="0.652747 0.271888 0.6536 0.269825" mass="0.913064" diaginertia="0.000521213 0.000521154 0.000425542"/>
+                            <joint class="motor_cra_ri50_60_pro_2_81_2e_ec_b1" name="wrist2_right_joint" pos="0 0 0" axis="0 -1 0" range="-1.5708 1.5708" actuatorfrcrange="-13.5 13.5" />
+                            <geom type="mesh" rgba="0.752941 0.752941 0.752941 1" mesh="wrist2_right_link" class="visual_mesh" />
+                            <body name="wrist3_right_link" pos="0.063012 0.03685 0.039831">
+                              <inertial pos="0.0323071 -0.000786662 -0.0036402" quat="0.726998 0.0749557 0.0571984 0.680135" mass="0.160623" diaginertia="0.000171326 0.000146319 0.000112168"/>
+                              <joint class="motor_cra_ri50_60_pro_2_81_2e_ec_b1" name="wrist3_right_joint" pos="0 0 0" axis="0.00029476 0 1" range="-1.5708 1.5708" actuatorfrcrange="-13.5 13.5" />
+                              <geom type="mesh" rgba="0.866667 0.866667 0.890196 1" mesh="wrist3_right_link" class="visual_mesh" />
+                              <body name="camera_wrist_right_link" pos="0.020515 -0.001 0.051994">
+                                <geom type="mesh" rgba="0.752941 0.752941 0.752941 1" mesh="camera_wrist_right_link" class="visual_mesh" density="0" />
+                              </body>
+
+                              <geom pos="0.046 0 -0.04" quat="0.5 0.5 0.5 0.5" type="mesh" rgba="1 0.6 0 1" mesh="hand_base_right_link" class="visual_mesh" />
+                              <geom name="hand_base_right_link_collision" pos="0.046 0 -0.04" quat="0.5 0.5 0.5 0.5" type="mesh" mesh="hand_base_right_link" contype="2" conaffinity="1" group="5" rgba="0.2 0.8 0.2 0.15" />
+                              <body name="thumb_metacarpals_right_base2" pos="0.078794 0.011508 -0.017025" quat="0.5 0.5 0.5 0.5">
+                                <inertial pos="0.00162796 0.00276672 -0.00184228" quat="0.958658 0.114191 -0.0354615 -0.258221" mass="0.00138591" diaginertia="5.49427e-08 4.70357e-08 2.7769e-08"/>
+                                <joint class="hand_joint" name="thumb_cmc_yaw_right" pos="0 0 0" axis="0 0 -1" range="0 1.36" actuatorfrcrange="-5 5" />
+                                <geom type="mesh" rgba="0.164706 0.282353 0.443137 1" mesh="thumb_metacarpals_right_base2" class="visual_mesh" />
+                                <geom name="thumb_metacarpals_right_base2_collision" type="mesh" mesh="thumb_metacarpals_right_base2" contype="2" conaffinity="1" group="5" rgba="0.2 0.8 0.2 0.15" />
+                                <body name="thumb_metacarpals_right" pos="0.0061649 0.010678 -0.004891" quat="0.4192 -0.472029 -0.272524 -0.726079">
+                                  <inertial pos="4.24921e-05 -1.67886e-05 0.0228342" quat="0.687228 -0.164922 -0.164643 0.688049" mass="0.0123382" diaginertia="1.76758e-06 1.16101e-06 8.78264e-07"/>
+                                  <joint class="hand_joint" name="thumb_cmc_pitch_right" pos="0 0 0" axis="0 1 0" range="0 0.58" actuatorfrcrange="-5 5" />
+                                  <geom type="mesh" rgba="1 0.6 0 1" mesh="thumb_metacarpals_right" class="visual_mesh" />
+                                  <geom name="thumb_metacarpals_right_collision" type="mesh" mesh="thumb_metacarpals_right" contype="2" conaffinity="1" group="5" rgba="0.2 0.8 0.2 0.15" />
+                                  <body name="thumb_distal_right" pos="0.0037776 0 0.045368">
+                                    <inertial pos="-0.00413691 -4.54843e-07 0.0230097" quat="0.999397 9.12706e-06 -0.0347342 -8.13325e-06" mass="0.00763303" diaginertia="1.31047e-06 1.22457e-06 2.72295e-07"/>
+                                    <joint class="hand_joint" name="thumb_ip_right" pos="0 0 0" axis="0 1 0" range="0 1.08" actuatorfrcrange="-5 5" />
+                                    <geom type="mesh" rgba="0.792157 0.792157 0.792157 1" mesh="thumb_distal_right" class="visual_mesh" />
+                                    <geom name="thumb_distal_right_collision" type="mesh" mesh="thumb_distal_right" contype="2" conaffinity="1" group="5" rgba="0.2 0.8 0.2 0.15" />
+                                  </body>
+                                </body>
+                              </body>
+                              <body name="index_proximal_right" pos="0.144779 0.00247577 -0.01581" quat="0.512917 0.48674 0.48674 0.512917">
+                                <inertial pos="-0.00208666 -4.8965e-06 0.0172737" quat="0.993795 0.000369213 -0.111225 0.0007939" mass="0.00253179" diaginertia="2.75761e-07 2.72916e-07 7.58316e-08"/>
+                                <joint class="hand_joint" name="index_mcp_pitch_right" pos="0 0 0" axis="0 1 0" range="0 1.6" actuatorfrcrange="-5 5" />
+                                <geom type="mesh" rgba="0.980392 0.780392 0.627451 1" mesh="index_proximal_right" class="visual_mesh" />
+                                <geom name="index_proximal_right_collision" type="mesh" mesh="index_proximal_right" contype="2" conaffinity="1" group="5" rgba="0.2 0.8 0.2 0.15" />
+                                <body name="index_distal_right" pos="-0.0052516 0 0.036625">
+                                  <inertial pos="0.0065894 -4.59977e-06 0.0194434" quat="0.97709 0.000756952 0.212768 0.00487986" mass="0.00376787" diaginertia="3.74403e-07 3.65131e-07 7.19711e-08"/>
+                                  <joint class="hand_joint" name="index_dip_right" pos="0 0 0" axis="0 1 0" range="0 1.43" actuatorfrcrange="-5 5" />
+                                  <geom type="mesh" rgba="0.164706 0.282353 0.443137 1" mesh="index_distal_right" class="visual_mesh" />
+                                  <geom name="index_distal_right_collision" type="mesh" mesh="index_distal_right" contype="2" conaffinity="1" group="5" rgba="0.2 0.8 0.2 0.15" />
+                                </body>
+                              </body>
+                              <body name="middle_proximal_right" pos="0.1487 0.000525726 -0.03366" quat="0.5 0.5 0.5 0.5">
+                                <inertial pos="-0.00208661 -4.93452e-06 0.0172737" quat="0.993795 0.000375852 -0.111225 0.000731327" mass="0.00253175" diaginertia="2.75761e-07 2.72915e-07 7.58309e-08"/>
+                                <joint class="hand_joint" name="middle_mcp_pitch_right" pos="0 0 0" axis="0 1 0" range="0 1.6" actuatorfrcrange="-5 5" />
+                                <geom type="mesh" rgba="0.164706 0.282353 0.443137 1" mesh="middle_proximal_right" class="visual_mesh" />
+                                <geom name="middle_proximal_right_collision" type="mesh" mesh="middle_proximal_right" contype="2" conaffinity="1" group="5" rgba="0.2 0.8 0.2 0.15" />
+                                <body name="middle_distal_right" pos="-0.0052516 0 0.036625">
+                                  <inertial pos="0.0065894 -4.58857e-06 0.0194435" quat="0.97709 0.000755208 0.212768 0.00486939" mass="0.00376786" diaginertia="3.74402e-07 3.6513e-07 7.19708e-08"/>
+                                  <joint class="hand_joint" name="middle_dip_right" pos="0 0 0" axis="0 1 0" range="0 1.43" actuatorfrcrange="-5 5" />
+                                  <geom type="mesh" rgba="0.164706 0.282353 0.443137 1" mesh="middle_distal_right" class="visual_mesh" />
+                                  <geom name="middle_distal_right_collision" type="mesh" mesh="middle_distal_right" contype="2" conaffinity="1" group="5" rgba="0.2 0.8 0.2 0.15" />
+                                </body>
+                              </body>
+                              <body name="ring_proximal_right" pos="0.144767 0.00102577 -0.051135" quat="0.48674 0.512917 0.512917 0.48674">
+                                <inertial pos="-0.00208654 -4.98539e-06 0.0172737" quat="0.993795 0.000384813 -0.111226 0.000649851" mass="0.00253171" diaginertia="2.7576e-07 2.72915e-07 7.58301e-08"/>
+                                <joint class="hand_joint" name="ring_mcp_pitch_right" pos="0 0 0" axis="0 1 0" range="0 1.6" actuatorfrcrange="-5 5" />
+                                <geom type="mesh" rgba="0.980392 0.780392 0.627451 1" mesh="ring_proximal_right" class="visual_mesh" />
+                                <geom name="ring_proximal_right_collision" type="mesh" mesh="ring_proximal_right" contype="2" conaffinity="1" group="5" rgba="0.2 0.8 0.2 0.15" />
+                                <body name="ring_distal_right" pos="-0.0052516 0 0.036625">
+                                  <inertial pos="0.0065894 -4.56629e-06 0.0194435" quat="0.97709 0.000751861 0.21277 0.00484872" mass="0.00376784" diaginertia="3.744e-07 3.65127e-07 7.197e-08"/>
+                                  <joint class="hand_joint" name="ring_dip_right" pos="0 0 0" axis="0 1 0" range="0 1.43" actuatorfrcrange="-5 5" />
+                                  <geom type="mesh" rgba="0.164706 0.282353 0.443137 1" mesh="ring_distal_right" class="visual_mesh" />
+                                  <geom name="ring_distal_right_collision" type="mesh" mesh="ring_distal_right" contype="2" conaffinity="1" group="5" rgba="0.2 0.8 0.2 0.15" />
+                                </body>
+                              </body>
+                              <body name="pinky_proximal_right" pos="0.138741 0.00247577 -0.068372" quat="0.477715 0.521334 0.521334 0.477715">
+                                <inertial pos="-0.00208649 -5.02315e-06 0.0172737" quat="0.993795 0.0003914 -0.111226 0.000590247" mass="0.00253167" diaginertia="2.7576e-07 2.72914e-07 7.58294e-08"/>
+                                <joint class="hand_joint" name="pinky_mcp_pitch_right" pos="0 0 0" axis="0 1 0" range="0 1.6" actuatorfrcrange="-5 5" />
+                                <geom type="mesh" rgba="0.980392 0.780392 0.627451 1" mesh="pinky_proximal_right" class="visual_mesh" />
+                                <geom name="pinky_proximal_right_collision" type="mesh" mesh="pinky_proximal_right" contype="2" conaffinity="1" group="5" rgba="0.2 0.8 0.2 0.15" />
+                                <body name="pinky_distal_right" pos="-0.0052516 0 0.036625">
+                                  <inertial pos="0.0065894 -4.55268e-06 0.0194435" quat="0.97709 0.000749893 0.21277 0.00483566" mass="0.00376783" diaginertia="3.74398e-07 3.65126e-07 7.19694e-08"/>
+                                  <joint class="hand_joint" name="pinky_dip_right" pos="0 0 0" axis="0 1 0" range="0 1.43" actuatorfrcrange="-5 5" />
+                                  <geom type="mesh" rgba="0.164706 0.282353 0.443137 1" mesh="pinky_distal_right" class="visual_mesh" />
+                                  <geom name="pinky_distal_right_collision" type="mesh" mesh="pinky_distal_right" contype="2" conaffinity="1" group="5" rgba="0.2 0.8 0.2 0.15" />
+                                </body>
+                              </body>
+                            </body>
+                          </body>
+                        </body>
+                      </body>
+                    </body>
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+
+    <!-- 任冠宇 249-270 后加的 轨迹体 -->
+    <!-- <body name="trajectory_body" pos="0 0 0">
+      <geom class="trajectory_point" name="traj_point_0" pos="0 0 0" rgba="1 0 0 0.3"/>
+      <geom class="trajectory_point" name="traj_point_1" pos="0 0 0" rgba="1 0.2 0 0.3"/>
+      <geom class="trajectory_point" name="traj_point_2" pos="0 0 0" rgba="1 0.4 0 0.3"/>
+      <geom class="trajectory_point" name="traj_point_3" pos="0 0 0" rgba="1 0.6 0 0.3"/>
+      <geom class="trajectory_point" name="traj_point_4" pos="0 0 0" rgba="1 0.8 0 0.3"/>
+      <geom class="trajectory_point" name="traj_point_5" pos="0 0 0" rgba="1 1 0 0.3"/>
+      <geom class="trajectory_point" name="traj_point_6" pos="0 0 0" rgba="0.8 1 0 0.3"/>
+      <geom class="trajectory_point" name="traj_point_7" pos="0 0 0" rgba="0.6 1 0 0.3"/>
+      <geom class="trajectory_point" name="traj_point_8" pos="0 0 0" rgba="0.4 1 0 0.3"/>
+      <geom class="trajectory_point" name="traj_point_9" pos="0 0 0" rgba="0.2 1 0 0.3"/>
+      <geom class="trajectory_point" name="traj_point_10" pos="0 0 0" rgba="0 0.2 1 0.3"/>
+      <geom class="trajectory_point" name="traj_point_11" pos="0 0 0" rgba="0 0.4 1 0.3"/>
+      <geom class="trajectory_point" name="traj_point_12" pos="0 0 0" rgba="0 0.6 1 0.3"/>
+      <geom class="trajectory_point" name="traj_point_13" pos="0 0 0" rgba="0 0.8 1 0.3"/>
+      <geom class="trajectory_point" name="traj_point_14" pos="0 0 0" rgba="0 1 1 0.3"/>
+      <geom class="trajectory_point" name="traj_point_15" pos="0 0 0" rgba="0 1 0.8 0.3"/>
+      <geom class="trajectory_point" name="traj_point_16" pos="0 0 0" rgba="0 1 0.6 0.3"/>
+      <geom class="trajectory_point" name="traj_point_17" pos="0 0 0" rgba="0 1 0.4 0.3"/>
+      <geom class="trajectory_point" name="traj_point_18" pos="0 0 0" rgba="0 1 0.2 0.3"/>
+      <geom class="trajectory_point" name="traj_point_19" pos="0 0 0" rgba="0 0.8 1 0.3"/>
+    </body> -->
+  </worldbody>
+</mujoco>

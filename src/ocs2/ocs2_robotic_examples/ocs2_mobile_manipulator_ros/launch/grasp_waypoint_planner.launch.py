@@ -19,7 +19,7 @@ def generate_launch_description():
         launch.actions.DeclareLaunchArgument(
             name='urdfFile',
             default_value=get_package_share_directory('ocs2_robotic_assets') +
-                          '/resources/gensong_wheel_outfit_cover/urdf/gensong_wheel_outfit.urdf'
+                          '/resources/gensong_board/urdf/gensong_board.urdf'
         ),
         launch.actions.DeclareLaunchArgument(
             name='rvizconfig',
@@ -42,16 +42,20 @@ def generate_launch_description():
             default_value='box_pose'
         ),
         launch.actions.DeclareLaunchArgument(
+            name='place_box_pose_topic',
+            default_value='place_box_pose'
+        ),
+        launch.actions.DeclareLaunchArgument(
             name='box_size_x',
-            default_value='0.1978'
+            default_value='0.45'
         ),
         launch.actions.DeclareLaunchArgument(
             name='box_size_y',
-            default_value='0.3029'
+            default_value='0.72'
         ),
         launch.actions.DeclareLaunchArgument(
             name='box_size_z',
-            default_value='0.1464'
+            default_value='0.12'
         ),
         launch.actions.DeclareLaunchArgument(
             name='grasp_edge_inset_y',
@@ -64,6 +68,14 @@ def generate_launch_description():
         launch.actions.DeclareLaunchArgument(
             name='grasp_z_offset',
             default_value='0.0'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='grasp_hold_sec',
+            default_value='2.0'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='trajectory_time_scale',
+            default_value='1.0'
         ),
         launch.actions.DeclareLaunchArgument(
             name='grasp_frame_roll',
@@ -153,6 +165,9 @@ def generate_launch_description():
                     'box_pose_topic': launch.substitutions.LaunchConfiguration('box_pose_topic')
                 },
                 {
+                    'place_box_pose_topic': launch.substitutions.LaunchConfiguration('place_box_pose_topic')
+                },
+                {
                     'box_size_x': launch.substitutions.LaunchConfiguration('box_size_x')
                 },
                 {
@@ -169,6 +184,12 @@ def generate_launch_description():
                 },
                 {
                     'grasp_z_offset': launch.substitutions.LaunchConfiguration('grasp_z_offset')
+                },
+                {
+                    'grasp_hold_sec': launch.substitutions.LaunchConfiguration('grasp_hold_sec')
+                },
+                {
+                    'trajectory_time_scale': launch.substitutions.LaunchConfiguration('trajectory_time_scale')
                 },
                 {
                     'grasp_frame_rpy.roll': launch.substitutions.LaunchConfiguration('grasp_frame_roll')

@@ -19,7 +19,7 @@ def generate_launch_description():
         launch.actions.DeclareLaunchArgument(
             name='urdfFile',
             default_value=get_package_share_directory('ocs2_robotic_assets') +
-                          '/resources/gensong_wheel_outfit_cover/urdf/gensong_wheel_outfit.urdf'
+                          '/resources/gensong_board/urdf/gensong_board.urdf'
         ),
         launch.actions.DeclareLaunchArgument(
             name='taskFile',
@@ -30,16 +30,76 @@ def generate_launch_description():
             default_value='box_pose'
         ),
         launch.actions.DeclareLaunchArgument(
+            name='place_box_pose_topic',
+            default_value='place_box_pose'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='box_center_x',
+            default_value='0.8994'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='box_center_y',
+            default_value='-0.0327'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='box_center_z',
+            default_value='1.1000'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='box_center_qx',
+            default_value='0.0'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='box_center_qy',
+            default_value='0.0'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='box_center_qz',
+            default_value='0.0'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='box_center_qw',
+            default_value='1.0'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='place_center_x',
+            default_value='0.8994'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='place_center_y',
+            default_value='-0.0327'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='place_center_z',
+            default_value='1.1000'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='place_center_qx',
+            default_value='0.0'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='place_center_qy',
+            default_value='0.0'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='place_center_qz',
+            default_value='0.0'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='place_center_qw',
+            default_value='1.0'
+        ),
+        launch.actions.DeclareLaunchArgument(
             name='box_size_x',
-            default_value='0.1978'
+            default_value='0.45'
         ),
         launch.actions.DeclareLaunchArgument(
             name='box_size_y',
-            default_value='0.3029'
+            default_value='0.72'
         ),
         launch.actions.DeclareLaunchArgument(
             name='box_size_z',
-            default_value='0.1464'
+            default_value='0.12'
         ),
         launch.actions.DeclareLaunchArgument(
             name='grasp_edge_inset_y',
@@ -52,6 +112,14 @@ def generate_launch_description():
         launch.actions.DeclareLaunchArgument(
             name='grasp_z_offset',
             default_value='0.0'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='grasp_hold_sec',
+            default_value='2.0'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='trajectory_time_scale',
+            default_value='1.0'
         ),
         launch.actions.DeclareLaunchArgument(
             name='grasp_frame_roll',
@@ -89,6 +157,10 @@ def generate_launch_description():
             name='right_wrist_yaw',
             default_value='0.0'
         ),
+        launch.actions.DeclareLaunchArgument(
+            name='place_trigger_delay_sec',
+            default_value='8.0'
+        ),
         launch.actions.IncludeLaunchDescription(
             launch.launch_description_sources.PythonLaunchDescriptionSource(manipulator_launch),
             launch_arguments={
@@ -113,6 +185,51 @@ def generate_launch_description():
                     'box_pose_topic': launch.substitutions.LaunchConfiguration('box_pose_topic')
                 },
                 {
+                    'place_box_pose_topic': launch.substitutions.LaunchConfiguration('place_box_pose_topic')
+                },
+                {
+                    'box_center.x': launch.substitutions.LaunchConfiguration('box_center_x')
+                },
+                {
+                    'box_center.y': launch.substitutions.LaunchConfiguration('box_center_y')
+                },
+                {
+                    'box_center.z': launch.substitutions.LaunchConfiguration('box_center_z')
+                },
+                {
+                    'box_center.qx': launch.substitutions.LaunchConfiguration('box_center_qx')
+                },
+                {
+                    'box_center.qy': launch.substitutions.LaunchConfiguration('box_center_qy')
+                },
+                {
+                    'box_center.qz': launch.substitutions.LaunchConfiguration('box_center_qz')
+                },
+                {
+                    'box_center.qw': launch.substitutions.LaunchConfiguration('box_center_qw')
+                },
+                {
+                    'place_center.x': launch.substitutions.LaunchConfiguration('place_center_x')
+                },
+                {
+                    'place_center.y': launch.substitutions.LaunchConfiguration('place_center_y')
+                },
+                {
+                    'place_center.z': launch.substitutions.LaunchConfiguration('place_center_z')
+                },
+                {
+                    'place_center.qx': launch.substitutions.LaunchConfiguration('place_center_qx')
+                },
+                {
+                    'place_center.qy': launch.substitutions.LaunchConfiguration('place_center_qy')
+                },
+                {
+                    'place_center.qz': launch.substitutions.LaunchConfiguration('place_center_qz')
+                },
+                {
+                    'place_center.qw': launch.substitutions.LaunchConfiguration('place_center_qw')
+                },
+                {
                     'box_size_x': launch.substitutions.LaunchConfiguration('box_size_x')
                 },
                 {
@@ -129,6 +246,12 @@ def generate_launch_description():
                 },
                 {
                     'grasp_z_offset': launch.substitutions.LaunchConfiguration('grasp_z_offset')
+                },
+                {
+                    'grasp_hold_sec': launch.substitutions.LaunchConfiguration('grasp_hold_sec')
+                },
+                {
+                    'trajectory_time_scale': launch.substitutions.LaunchConfiguration('trajectory_time_scale')
                 },
                 {
                     'grasp_frame_rpy.roll': launch.substitutions.LaunchConfiguration('grasp_frame_roll')
@@ -157,24 +280,6 @@ def generate_launch_description():
                 {
                     'right_wrist_compensation_rpy.yaw': launch.substitutions.LaunchConfiguration('right_wrist_yaw')
                 },
-                {
-                    'enable_transport_stage': True
-                },
-                {
-                    'enable_place_stage': True
-                },
-                {
-                    'transport_offset_is_absolute': True
-                },
-                {
-                    'transport_offset_x': 0.8994
-                },
-                {
-                    'transport_offset_y': -0.0327
-                },
-                {
-                    'transport_offset_z': 1.1000
-                }
             ]
         ),
         launch_ros.actions.Node(
@@ -185,6 +290,9 @@ def generate_launch_description():
             parameters=[
                 {
                     'box_pose_topic': launch.substitutions.LaunchConfiguration('box_pose_topic')
+                },
+                {
+                    'place_box_pose_topic': launch.substitutions.LaunchConfiguration('place_box_pose_topic')
                 },
                 {
                     'box_size_x': launch.substitutions.LaunchConfiguration('box_size_x')
@@ -206,6 +314,15 @@ def generate_launch_description():
                 },
                 {
                     'urdf_file': launch.substitutions.LaunchConfiguration('urdfFile')
+                },
+                {
+                    'auto_trigger': False
+                },
+                {
+                    'auto_publish_place': True
+                },
+                {
+                    'place_trigger_delay_sec': launch.substitutions.LaunchConfiguration('place_trigger_delay_sec')
                 },
                 {
                     'grasp_frame_rpy.roll': launch.substitutions.LaunchConfiguration('grasp_frame_roll')

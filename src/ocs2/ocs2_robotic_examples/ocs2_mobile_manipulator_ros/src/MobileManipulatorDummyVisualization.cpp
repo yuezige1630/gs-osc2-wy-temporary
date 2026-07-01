@@ -43,12 +43,34 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <pinocchio/algorithm/frames.hpp>
 #include <pinocchio/algorithm/kinematics.hpp>
 #include <pinocchio/fwd.hpp>
+#include <stdexcept>
+#include <unordered_map>
 #include <visualization_msgs/msg/marker_array.hpp>
 
 #include "rclcpp/rclcpp.hpp"
 
 namespace ocs2 {
 namespace mobile_manipulator {
+
+namespace {
+
+void collectMovableJointNames(const urdf::LinkConstSharedPtr& link, std::vector<std::string>& jointNames) {
+  if (!link) {
+    return;
+  }
+
+  for (const auto& childJoint : link->child_joints) {
+    if (childJoint && childJoint->type != urdf::Joint::FIXED) {
+      jointNames.push_back(childJoint->name);
+    }
+  }
+
+  for (const auto& childLink : link->child_links) {
+    collectMovableJointNames(childLink, jointNames);
+  }
+}
+
+}  // namespace
 
 /******************************************************************************************************/
 /******************************************************************************************************/
@@ -91,6 +113,9 @@ void MobileManipulatorDummyVisualization::launchVisualizerNode() {
   // read the joints to make fixed
   loadData::loadStdVector<std::string>(
       taskFile, "model_information.removeJoints", removeJointNames_, false);
+  removeJointNameSet_ =
+      std::unordered_set<std::string>(removeJointNames_.begin(), removeJointNames_.end());
+  loadUrdfJointNames(urdfFile);
   // read if self-collision checking active
   boost::property_tree::ptree pt;
   boost::property_tree::read_info(taskFile, pt);
@@ -116,6 +141,24 @@ void MobileManipulatorDummyVisualization::launchVisualizerNode() {
     // set geometry visualization markers
     geometryVisualization_.reset(new GeometryInterfaceVisualization(
         std::move(pinocchioInterface), geomInterface));
+  }
+}
+
+/******************************************************************************************************/
+/******************************************************************************************************/
+/******************************************************************************************************/
+void MobileManipulatorDummyVisualization::loadUrdfJointNames(const std::string& urdfFile) {
+  urdf::Model urdfModel;
+  if (!urdfModel.initFile(urdfFile)) {
+    throw std::runtime_error("[MobileManipulatorDummyVisualization] Failed to parse URDF file: " + urdfFile);
+  }
+
+  urdfJointNames_.clear();
+  collectMovableJointNames(urdfModel.getRoot(), urdfJointNames_);
+
+  if (urdfJointNames_.empty()) {
+    RCLCPP_WARN(node_->get_logger(),
+                "[MobileManipulatorDummyVisualization] No movable joints found in URDF tree. Falling back to modelInfo_.dofNames.");
   }
 }
 
@@ -156,20 +199,42 @@ void MobileManipulatorDummyVisualization::publishObservation(
   const auto j_arm = getArmJointAngles(observation.state, modelInfo_);
   sensor_msgs::msg::JointState joint_state;
   joint_state.header.stamp = timeStamp;
-  const auto dofNames_count = modelInfo_.dofNames.size();
-  const auto joint_count = dofNames_count + removeJointNames_.size();
-  joint_state.name.resize(joint_count);
-  joint_state.position.resize(joint_count);
-  for (size_t i = 0; i < dofNames_count; i++) {
-    joint_state.name[i] = modelInfo_.dofNames[i];
-    joint_state.position[i] = j_arm(i);
+  std::unordered_map<std::string, scalar_t> jointPositionByName;
+  jointPositionByName.reserve(modelInfo_.dofNames.size());
+  for (size_t i = 0; i < modelInfo_.dofNames.size(); ++i) {
+    jointPositionByName.emplace(modelInfo_.dofNames[i], j_arm(i));
   }
 
-  auto joint_state_index = dofNames_count;
-  for (const auto& name : removeJointNames_) {
-    joint_state.name[joint_state_index] = name;
-    joint_state.position[joint_state_index] = 0.0;
-    joint_state_index++;
+  if (!urdfJointNames_.empty()) {
+    joint_state.name = urdfJointNames_;
+    joint_state.position.resize(urdfJointNames_.size(), 0.0);
+    for (size_t i = 0; i < urdfJointNames_.size(); ++i) {
+      const auto& jointName = urdfJointNames_[i];
+      const auto positionIt = jointPositionByName.find(jointName);
+      if (positionIt != jointPositionByName.end()) {
+        joint_state.position[i] = positionIt->second;
+      } else if (removeJointNameSet_.find(jointName) == removeJointNameSet_.end()) {
+        RCLCPP_WARN_THROTTLE(node_->get_logger(), *node_->get_clock(), 5000,
+                             "[MobileManipulatorDummyVisualization] Joint '%s' exists in URDF but not in state or removeJoints. Publishing 0.0.",
+                             jointName.c_str());
+      }
+    }
+  } else {
+    const auto dofNamesCount = modelInfo_.dofNames.size();
+    const auto jointCount = dofNamesCount + removeJointNames_.size();
+    joint_state.name.resize(jointCount);
+    joint_state.position.resize(jointCount);
+    for (size_t i = 0; i < dofNamesCount; ++i) {
+      joint_state.name[i] = modelInfo_.dofNames[i];
+      joint_state.position[i] = j_arm(i);
+    }
+
+    auto jointStateIndex = dofNamesCount;
+    for (const auto& name : removeJointNames_) {
+      joint_state.name[jointStateIndex] = name;
+      joint_state.position[jointStateIndex] = 0.0;
+      jointStateIndex++;
+    }
   }
   jointPublisher_->publish(joint_state);
 }

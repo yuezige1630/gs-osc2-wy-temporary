@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <geometry_msgs/msg/pose_array.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
+#include <unordered_set>
 
 namespace ocs2 {
 namespace mobile_manipulator {
@@ -68,13 +69,16 @@ class MobileManipulatorDummyVisualization final : public DummyObserver {
                                  const TargetTrajectories& targetTrajectories);
   void publishOptimizedTrajectory(const rclcpp::Time& timeStamp,
                                   const PrimalSolution& policy);
+  void loadUrdfJointNames(const std::string& urdfFile);
 
   rclcpp::Node::SharedPtr node_;
   PinocchioInterface pinocchioInterface_;
   const ManipulatorModelInfo modelInfo_;
   std::vector<std::string> removeJointNames_;
+  std::vector<std::string> urdfJointNames_;
+  std::unordered_set<std::string> removeJointNameSet_;
 
- rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr jointPublisher_;
+  rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr jointPublisher_;
   tf2_ros::TransformBroadcaster tfBroadcaster_;
 
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr
@@ -83,7 +87,6 @@ class MobileManipulatorDummyVisualization final : public DummyObserver {
       stateOptimizedPosePublisher_;
 
   std::unique_ptr<GeometryInterfaceVisualization> geometryVisualization_;
-
 };
 
 }  // namespace mobile_manipulator
