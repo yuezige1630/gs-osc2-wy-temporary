@@ -303,3 +303,43 @@ source install/setup.bash
 ```bash
 ls /home/robot-zhao/work/gensong_ros2/src/ocs2_robotic_assets/resources/gensong_board/urdf/gensong_board.urdf
 ```
+
+### 9.5 想批量看左右手末端跟踪误差
+
+可以直接运行新增的随机测试节点，它会：
+
+- 从 TF 读取当前左/右手初始位姿
+- 在初始位姿附近随机采样多个偏移点
+- 发布到 `mobile_manipulator_mpc_target`
+- 按窗口统计左右手的 `x/y/z` 位置误差和姿态误差
+
+示例：
+
+```bash
+ros2 run ocs2_mobile_manipulator_ros dual_arm_tracking_error_tester.py --ros-args \
+  -p sample_count:=5 \
+  -p pos_offset_x_mm:=20.0 \
+  -p pos_offset_y_mm:=20.0 \
+  -p pos_offset_z_mm:=20.0 \
+  -p rot_offset_roll_deg:=5.0 \
+  -p rot_offset_pitch_deg:=5.0 \
+  -p rot_offset_yaw_deg:=5.0 \
+  -p settle_delay_sec:=3.0 \
+  -p measure_duration_sec:=1.0 \
+  -p csv_path:=/tmp/dual_arm_tracking_error.csv
+```
+
+如果你的 Isaac Sim 里 frame 名不是 `world`、`handboard_left`、`handboard_right`，可以改参数：
+
+```bash
+ros2 run ocs2_mobile_manipulator_ros dual_arm_tracking_error_tester.py --ros-args \
+  -p world_frame:=World \
+  -p left_frame:=left_hand_o \
+  -p right_frame:=right_hand_o
+```
+
+输出里会分别给出：
+
+- 左手位置误差 `dx/dy/dz`，单位 mm
+- 左手姿态误差 `roll/pitch/yaw` 和总角度误差，单位 deg
+- 右手同样一组结果
