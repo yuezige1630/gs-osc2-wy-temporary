@@ -2,6 +2,7 @@ import os
 
 import launch
 import launch_ros.actions
+from launch.conditions import IfCondition, UnlessCondition
 from ament_index_python.packages import get_package_share_directory
 
 
@@ -32,6 +33,78 @@ def generate_launch_description():
         launch.actions.DeclareLaunchArgument(
             name='place_box_pose_topic',
             default_value='place_box_pose'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='sweep_mode',
+            default_value='false'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='sweep_frame_id',
+            default_value='base_link'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='sweep_csv_path',
+            default_value='/tmp/gensong_grasp_reachability.csv'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='sweep_summary_path',
+            default_value=''
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='sweep_publish_box_pose',
+            default_value='true'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='sweep_pose_publish_settle_sec',
+            default_value='0.05'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='sweep_service_timeout_sec',
+            default_value='10.0'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='sweep_service_wait_timeout_sec',
+            default_value='30.0'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='sweep_startup_wait_sec',
+            default_value='2.0'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='sweep_x_min',
+            default_value='0.65'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='sweep_x_max',
+            default_value='1.15'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='sweep_x_step',
+            default_value='0.05'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='sweep_y_min',
+            default_value='-0.35'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='sweep_y_max',
+            default_value='0.35'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='sweep_y_step',
+            default_value='0.05'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='sweep_z_min',
+            default_value='0.85'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='sweep_z_max',
+            default_value='1.40'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='sweep_z_step',
+            default_value='0.05'
         ),
         launch.actions.DeclareLaunchArgument(
             name='box_center_x',
@@ -182,6 +255,9 @@ def generate_launch_description():
                     'urdfFile': launch.substitutions.LaunchConfiguration('urdfFile')
                 },
                 {
+                    'dry_run_mode': launch.substitutions.LaunchConfiguration('sweep_mode')
+                },
+                {
                     'box_pose_topic': launch.substitutions.LaunchConfiguration('box_pose_topic')
                 },
                 {
@@ -287,6 +363,7 @@ def generate_launch_description():
             executable='preset_dual_arm_grasp_pose_publisher.py',
             name='preset_dual_arm_grasp_pose_publisher',
             output='screen',
+            condition=UnlessCondition(launch.substitutions.LaunchConfiguration('sweep_mode')),
             parameters=[
                 {
                     'box_pose_topic': launch.substitutions.LaunchConfiguration('box_pose_topic')
@@ -350,6 +427,84 @@ def generate_launch_description():
                 },
                 {
                     'right_wrist_compensation_rpy.yaw': launch.substitutions.LaunchConfiguration('right_wrist_yaw')
+                }
+            ]
+        ),
+        launch_ros.actions.Node(
+            package='ocs2_mobile_manipulator_ros',
+            executable='grasp_reachability_sweep.py',
+            name='grasp_reachability_sweep',
+            output='screen',
+            condition=IfCondition(launch.substitutions.LaunchConfiguration('sweep_mode')),
+            parameters=[
+                {
+                    'frame_id': launch.substitutions.LaunchConfiguration('sweep_frame_id')
+                },
+                {
+                    'box_pose_topic': launch.substitutions.LaunchConfiguration('box_pose_topic')
+                },
+                {
+                    'evaluate_service_name': 'evaluate_box_pose'
+                },
+                {
+                    'csv_path': launch.substitutions.LaunchConfiguration('sweep_csv_path')
+                },
+                {
+                    'summary_path': launch.substitutions.LaunchConfiguration('sweep_summary_path')
+                },
+                {
+                    'publish_box_pose': launch.substitutions.LaunchConfiguration('sweep_publish_box_pose')
+                },
+                {
+                    'pose_publish_settle_sec': launch.substitutions.LaunchConfiguration('sweep_pose_publish_settle_sec')
+                },
+                {
+                    'service_timeout_sec': launch.substitutions.LaunchConfiguration('sweep_service_timeout_sec')
+                },
+                {
+                    'service_wait_timeout_sec': launch.substitutions.LaunchConfiguration('sweep_service_wait_timeout_sec')
+                },
+                {
+                    'startup_wait_sec': launch.substitutions.LaunchConfiguration('sweep_startup_wait_sec')
+                },
+                {
+                    'box_qx': launch.substitutions.LaunchConfiguration('box_center_qx')
+                },
+                {
+                    'box_qy': launch.substitutions.LaunchConfiguration('box_center_qy')
+                },
+                {
+                    'box_qz': launch.substitutions.LaunchConfiguration('box_center_qz')
+                },
+                {
+                    'box_qw': launch.substitutions.LaunchConfiguration('box_center_qw')
+                },
+                {
+                    'x_min': launch.substitutions.LaunchConfiguration('sweep_x_min')
+                },
+                {
+                    'x_max': launch.substitutions.LaunchConfiguration('sweep_x_max')
+                },
+                {
+                    'x_step': launch.substitutions.LaunchConfiguration('sweep_x_step')
+                },
+                {
+                    'y_min': launch.substitutions.LaunchConfiguration('sweep_y_min')
+                },
+                {
+                    'y_max': launch.substitutions.LaunchConfiguration('sweep_y_max')
+                },
+                {
+                    'y_step': launch.substitutions.LaunchConfiguration('sweep_y_step')
+                },
+                {
+                    'z_min': launch.substitutions.LaunchConfiguration('sweep_z_min')
+                },
+                {
+                    'z_max': launch.substitutions.LaunchConfiguration('sweep_z_max')
+                },
+                {
+                    'z_step': launch.substitutions.LaunchConfiguration('sweep_z_step')
                 }
             ]
         )

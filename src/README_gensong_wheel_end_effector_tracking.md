@@ -87,6 +87,30 @@ ros2 launch ocs2_mobile_manipulator_ros grasp_waypoint_test.launch.py place_trig
 ros2 launch ocs2_mobile_manipulator_ros grasp_waypoint_planner.launch.py grasp_hold_sec:=2.0
 ```
 
+如果你想直接做 `box_pose` 的可达范围扫参，可以打开 `sweep_mode`。这个模式不会驱动真实抓取动作，只会把每个点送进评估接口，并写出 CSV 和 summary：
+
+```bash
+ros2 launch ocs2_mobile_manipulator_ros grasp_waypoint_test.launch.py \
+  sweep_mode:=true \
+  sweep_csv_path:=/tmp/gensong_grasp_reachability.csv \
+  sweep_x_min:=0.65 sweep_x_max:=1.15 sweep_x_step:=0.05 \
+  sweep_y_min:=-0.35 sweep_y_max:=0.35 sweep_y_step:=0.05 \
+  sweep_z_min:=0.85 sweep_z_max:=1.40 sweep_z_step:=0.05
+```
+
+结果文件会生成两份：
+
+- `sweep_csv_path` 指向的原始 CSV
+- 同目录下的 `*.summary.txt`
+
+summary 里会同时给出：
+
+- 成功包络
+- 安全范围
+- 紧邻成功包络外侧的失败边界
+
+评估 service 名称默认是 `evaluate_box_pose`，输入的 `PoseStamped.header.frame_id` 需要和 `base_link` 对齐。
+
 如果你的识别结果是箱子中心点，但实际抓取点要在“中心点上方 1cm”的位置：
 
 ```bash

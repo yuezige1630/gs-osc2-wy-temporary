@@ -1,0 +1,4 @@
+geometry_msgs/PoseStamped box_pose
+---
+bool success
+string message

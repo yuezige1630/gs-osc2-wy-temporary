@@ -28,6 +28,7 @@ Copyright (c) 2026.
 #include <ocs2_core/misc/LoadData.h>
 #include <ocs2_mobile_manipulator/FactoryFunctions.h>
 #include <ocs2_mobile_manipulator/MobileManipulatorPinocchioMapping.h>
+#include <ocs2_msgs/srv/evaluate_box_pose.hpp>
 #include <ocs2_ros_interfaces/command/TargetTrajectoriesRosPublisher.h>
 #include <ocs2_ros_interfaces/common/RosMsgConversions.h>
 
@@ -107,6 +108,7 @@ class DualArmGraspWaypointPlanner final {
     transportOffset_.x() = node_->declare_parameter<double>("transport_offset_x", 0.0);
     transportOffset_.y() = node_->declare_parameter<double>("transport_offset_y", 0.0);
     transportOffset_.z() = node_->declare_parameter<double>("transport_offset_z", 0.0);
+    dryRunMode_ = node_->declare_parameter<bool>("dry_run_mode", false);
 
     if (planningFrame_ != modelInfo_.baseFrame) {
       RCLCPP_WARN(node_->get_logger(),
@@ -138,6 +140,11 @@ class DualArmGraspWaypointPlanner final {
                   "maintain_rigid_grasp_after_contact=false is not supported in the two-stage workflow; rigid grasp will "
                   "be enforced after contact.");
     }
+    if (dryRunMode_) {
+      RCLCPP_INFO(node_->get_logger(),
+                  "Dry-run mode enabled: box_pose topic updates will be cached, and trajectory evaluation will not "
+                  "publish motions.");
+    }
 
     observationSubscriber_ = node_->create_subscription<ocs2_msgs::msg::MpcObservation>(
         topicPrefix_ + "_mpc_observation", 1,
@@ -155,6 +162,12 @@ class DualArmGraspWaypointPlanner final {
         "plan_and_send_grasp_trajectory",
         [this](const std::shared_ptr<std_srvs::srv::Trigger::Request>&,
                std::shared_ptr<std_srvs::srv::Trigger::Response> response) { handlePlanRequest(*response); });
+    evaluateService_ = node_->create_service<ocs2_msgs::srv::EvaluateBoxPose>(
+        "evaluate_box_pose",
+        [this](const std::shared_ptr<ocs2_msgs::srv::EvaluateBoxPose::Request>& request,
+               std::shared_ptr<ocs2_msgs::srv::EvaluateBoxPose::Response> response) {
+          handleEvaluateBoxPose(*request, *response);
+        });
 
     RCLCPP_INFO(node_->get_logger(),
                 "Dual-arm two-stage planner ready. box_pose_topic=%s, place_box_pose_topic=%s, publishing to "
@@ -220,6 +233,50 @@ class DualArmGraspWaypointPlanner final {
     pose.orientation = Eigen::Quaterniond(msg.pose.orientation.w, msg.pose.orientation.x, msg.pose.orientation.y,
                                           msg.pose.orientation.z);
     return pose;
+  }
+
+  bool buildGraspSnapshotFromMsg(const geometry_msgs::msg::PoseStamped& msg, GraspSnapshot& snapshot,
+                                 std::string& errorMessage) const {
+    if (!hasObservation_) {
+      errorMessage = "No mobile_manipulator_mpc_observation received yet.";
+      return false;
+    }
+    if (msg.header.frame_id != planningFrame_) {
+      std::ostringstream stream;
+      stream << "Box PoseStamped input must use frame_id '" << planningFrame_ << "'.";
+      errorMessage = stream.str();
+      return false;
+    }
+
+    snapshot.observation = latestObservation_;
+    snapshot.boxPose = poseDataFromMsg(msg);
+    if (!normalizeQuaternion(snapshot.boxPose.orientation, &errorMessage)) {
+      errorMessage = "Box pose orientation invalid: " + errorMessage;
+      return false;
+    }
+    return computeGraspPoses(snapshot.boxPose, snapshot.graspPoses, errorMessage);
+  }
+
+  bool buildGraspPlan(const GraspSnapshot& snapshot, TargetTrajectories& targetTrajectories,
+                      ActiveCarrySession& nextCarrySession, std::string& errorMessage) {
+    std::array<std::vector<PoseData>, 2> armWaypoints;
+    std::vector<double> timeOffsets;
+    if (!buildGraspHoldWaypoints(snapshot, armWaypoints, nextCarrySession, timeOffsets, errorMessage)) {
+      return false;
+    }
+
+    targetTrajectories = buildTargetTrajectories(snapshot.observation, armWaypoints, timeOffsets);
+    return true;
+  }
+
+  std::string formatGraspSuccessMessage(const std::string& leadIn, const std::string& triggerSource,
+                                        const GraspSnapshot& snapshot, const ActiveCarrySession& carrySession) const {
+    std::ostringstream stream;
+    stream << leadIn << " " << triggerSource << ". Hold box center=" << formatVector(carrySession.holdBoxPose.position)
+           << ", left grasp="
+           << formatVector(snapshot.graspPoses[0].position) << ", right grasp="
+           << formatVector(snapshot.graspPoses[1].position) << ".";
+    return stream.str();
   }
 
   static std::string formatVector(const Eigen::Vector3d& vector) {
@@ -338,20 +395,7 @@ class DualArmGraspWaypointPlanner final {
       errorMessage = "Observation input dimension is empty.";
       return false;
     }
-    if (boxPoseMsg_.header.frame_id != planningFrame_) {
-      std::ostringstream stream;
-      stream << "Box PoseStamped input must use frame_id '" << planningFrame_ << "'.";
-      errorMessage = stream.str();
-      return false;
-    }
-
-    snapshot.observation = latestObservation_;
-    snapshot.boxPose = poseDataFromMsg(boxPoseMsg_);
-    if (!normalizeQuaternion(snapshot.boxPose.orientation, &errorMessage)) {
-      errorMessage = "Box pose orientation invalid: " + errorMessage;
-      return false;
-    }
-    return computeGraspPoses(snapshot.boxPose, snapshot.graspPoses, errorMessage);
+    return buildGraspSnapshotFromMsg(boxPoseMsg_, snapshot, errorMessage);
   }
 
   bool readPlaceSnapshotUnlocked(PlaceSnapshot& snapshot, std::string& errorMessage) {
@@ -629,26 +673,63 @@ class DualArmGraspWaypointPlanner final {
       return false;
     }
 
-    std::array<std::vector<PoseData>, 2> armWaypoints;
     ActiveCarrySession nextCarrySession;
-    std::vector<double> timeOffsets;
-    if (!buildGraspHoldWaypoints(snapshot, armWaypoints, nextCarrySession, timeOffsets, errorMessage)) {
+    TargetTrajectories targetTrajectories;
+    if (!buildGraspPlan(snapshot, targetTrajectories, nextCarrySession, errorMessage)) {
       return false;
     }
 
-    const auto targetTrajectories = buildTargetTrajectories(snapshot.observation, armWaypoints, timeOffsets);
-    targetTrajectoriesPublisherPtr_->publishTargetTrajectories(targetTrajectories);
+    if (!dryRunMode_) {
+      targetTrajectoriesPublisherPtr_->publishTargetTrajectories(targetTrajectories);
+    }
 
-    carrySession_ = nextCarrySession;
-    plannerState_ = PlannerState::EXECUTING_GRASP;
-    activeTrajectoryEndTime_ = targetTrajectories.timeTrajectory.back();
-    hasPlaceBoxPose_ = false;
+    if (!dryRunMode_) {
+      carrySession_ = nextCarrySession;
+      plannerState_ = PlannerState::EXECUTING_GRASP;
+      activeTrajectoryEndTime_ = targetTrajectories.timeTrajectory.back();
+      hasPlaceBoxPose_ = false;
+    }
+
+    successMessage = formatGraspSuccessMessage("Published grasp-hold trajectory from", triggerSource, snapshot,
+                                               nextCarrySession);
+    return true;
+  }
+
+  bool evaluateBoxPoseRequest(const geometry_msgs::msg::PoseStamped& msg, std::string& successMessage,
+                              std::string& errorMessage) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (hasObservation_) {
+      updatePlannerStateUnlocked(latestObservation_.time);
+    }
+    if (!dryRunMode_ && plannerState_ != PlannerState::IDLE) {
+      std::ostringstream stream;
+      stream << "Cannot evaluate box pose while state is " << stateName(plannerState_)
+             << ". Stop the active trajectory or enable dry_run_mode.";
+      errorMessage = stream.str();
+      return false;
+    }
+    if (latestObservation_.input.size() <= 0) {
+      errorMessage = "Observation input dimension is empty.";
+      return false;
+    }
+
+    GraspSnapshot snapshot;
+    if (!buildGraspSnapshotFromMsg(msg, snapshot, errorMessage)) {
+      return false;
+    }
+
+    TargetTrajectories targetTrajectories;
+    ActiveCarrySession nextCarrySession;
+    if (!buildGraspPlan(snapshot, targetTrajectories, nextCarrySession, errorMessage)) {
+      return false;
+    }
 
     std::ostringstream stream;
-    stream << "Published grasp-hold trajectory from " << triggerSource << ". Hold box center="
-           << formatVector(carrySession_.holdBoxPose.position) << ", left grasp="
+    stream << "Grasp evaluation succeeded for " << msg.header.frame_id << ". Hold box center="
+           << formatVector(nextCarrySession.holdBoxPose.position) << ", left grasp="
            << formatVector(snapshot.graspPoses[0].position) << ", right grasp="
-           << formatVector(snapshot.graspPoses[1].position) << ".";
+           << formatVector(snapshot.graspPoses[1].position) << ", trajectory_end_time="
+           << targetTrajectories.timeTrajectory.back() << ".";
     successMessage = stream.str();
     return true;
   }
@@ -702,6 +783,15 @@ class DualArmGraspWaypointPlanner final {
       if (hasObservation_) {
         updatePlannerStateUnlocked(latestObservation_.time);
       }
+      if (dryRunMode_) {
+        boxPoseMsg_ = msg;
+        hasBoxPose_ = true;
+        RCLCPP_INFO_THROTTLE(node_->get_logger(), *node_->get_clock(), 2000,
+                             "Cached box_pose in dry-run mode: frame_id=%s, position=[%.4f, %.4f, %.4f].",
+                             msg.header.frame_id.c_str(), msg.pose.position.x, msg.pose.position.y,
+                             msg.pose.position.z);
+        return;
+      }
       if (plannerState_ != PlannerState::IDLE) {
         warnIgnoredTrigger("box_pose", PlannerState::IDLE);
         return;
@@ -745,7 +835,59 @@ class DualArmGraspWaypointPlanner final {
   void handlePlanRequest(std_srvs::srv::Trigger::Response& response) {
     std::string successMessage;
     std::string errorMessage;
+    if (dryRunMode_) {
+      if (hasObservation_) {
+        updatePlannerStateUnlocked(latestObservation_.time);
+      }
+      if (!hasBoxPose_) {
+        response.success = false;
+        response.message = "No cached box pose available in dry_run_mode.";
+        RCLCPP_WARN(node_->get_logger(), "%s", response.message.c_str());
+        return;
+      }
+
+      GraspSnapshot snapshot;
+      if (!readGraspSnapshotUnlocked(snapshot, errorMessage)) {
+        response.success = false;
+        response.message = errorMessage;
+        RCLCPP_WARN(node_->get_logger(), "%s", errorMessage.c_str());
+        return;
+      }
+
+      TargetTrajectories targetTrajectories;
+      ActiveCarrySession nextCarrySession;
+      if (!buildGraspPlan(snapshot, targetTrajectories, nextCarrySession, errorMessage)) {
+        response.success = false;
+        response.message = errorMessage;
+        RCLCPP_WARN(node_->get_logger(), "%s", errorMessage.c_str());
+        return;
+      }
+
+      successMessage = formatGraspSuccessMessage("Grasp evaluation succeeded for", "service", snapshot,
+                                                 nextCarrySession);
+      response.success = true;
+      response.message = successMessage;
+      RCLCPP_INFO(node_->get_logger(), "%s", successMessage.c_str());
+      return;
+    }
+
     if (!planAndPublishGrasp("service", successMessage, errorMessage)) {
+      response.success = false;
+      response.message = errorMessage;
+      RCLCPP_WARN(node_->get_logger(), "%s", errorMessage.c_str());
+      return;
+    }
+
+    response.success = true;
+    response.message = successMessage;
+    RCLCPP_INFO(node_->get_logger(), "%s", successMessage.c_str());
+  }
+
+  void handleEvaluateBoxPose(const ocs2_msgs::srv::EvaluateBoxPose::Request& request,
+                             ocs2_msgs::srv::EvaluateBoxPose::Response& response) {
+    std::string successMessage;
+    std::string errorMessage;
+    if (!evaluateBoxPoseRequest(request.box_pose, successMessage, errorMessage)) {
       response.success = false;
       response.message = errorMessage;
       RCLCPP_WARN(node_->get_logger(), "%s", errorMessage.c_str());
@@ -806,6 +948,7 @@ class DualArmGraspWaypointPlanner final {
   double postReleaseRetreatDistance_ = 0.15;
   double postReleaseRetreatHeight_ = 0.05;
   Eigen::Vector3d transportOffset_ = Eigen::Vector3d::Zero();
+  bool dryRunMode_ = false;
 
   std::array<pinocchio::FrameIndex, 2> eeFrameIds_;
 
@@ -814,6 +957,7 @@ class DualArmGraspWaypointPlanner final {
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr boxPoseSubscriber_;
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr placeBoxPoseSubscriber_;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr planService_;
+  rclcpp::Service<ocs2_msgs::srv::EvaluateBoxPose>::SharedPtr evaluateService_;
 
   std::mutex mutex_;
   PlannerState plannerState_ = PlannerState::IDLE;

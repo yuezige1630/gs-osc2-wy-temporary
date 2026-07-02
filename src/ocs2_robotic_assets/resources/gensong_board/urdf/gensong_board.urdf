@@ -90,7 +90,7 @@
     <child
       link="wheel_drive_left_link" />
     <axis
-      xyz="0 -1 0" />
+      xyz="0 1 0" />
   </joint>
   <link
     name="wheel_drive_right_link">
@@ -193,7 +193,7 @@
   </link>
   <joint
     name="wheel_driven_left_joint"
-    type="fixed">
+    type="continuous">
     <origin
       xyz="0.266 0.2565 0.075"
       rpy="0 0 0" />
@@ -249,7 +249,7 @@
   </link>
   <joint
     name="wheel_driven_right_joint"
-    type="fixed">
+    type="continuous">
     <origin
       xyz="0.266 -0.2565 0.075"
       rpy="0 0 0" />
@@ -258,7 +258,7 @@
     <child
       link="wheel_driven_right_link" />
     <axis
-      xyz="0 -1 0" />
+      xyz="0 1 0" />
   </joint>
   <link
     name="leg_low_link">

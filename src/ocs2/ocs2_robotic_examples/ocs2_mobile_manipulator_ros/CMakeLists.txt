@@ -24,6 +24,7 @@ find_package(ocs2_pinocchio_interface REQUIRED)
 find_package(ocs2_self_collision REQUIRED)
 find_package(ocs2_self_collision_visualization REQUIRED)
 find_package(ocs2_mobile_manipulator REQUIRED)
+find_package(ocs2_msgs REQUIRED)
 
 find_package(pinocchio REQUIRED)
 find_package(hpp-fcl REQUIRED)
@@ -50,6 +51,7 @@ set(dependencies
   ocs2_self_collision
   ocs2_self_collision_visualization
   ocs2_mobile_manipulator
+  ocs2_msgs
 )
 
 add_executable(mobile_manipulator_mpc_node
@@ -131,9 +133,9 @@ install(DIRECTORY launch rviz
 
 install(PROGRAMS
   scripts/joint_state_command_bridge.py
+  scripts/grasp_reachability_sweep.py
   scripts/preset_dual_arm_grasp_pose_publisher.py
   scripts/dual_arm_tracking_error_tester.py
   DESTINATION lib/${PROJECT_NAME}
 )
-
 ament_package()
