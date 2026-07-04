@@ -1,5 +1,6 @@
 import os
 from launch.substitutions import LaunchConfiguration
+from launch.substitutions import PathJoinSubstitution
 
 import launch
 import launch_ros.actions
@@ -69,7 +70,10 @@ def generate_launch_description():
                     'urdfFile': launch.substitutions.LaunchConfiguration('urdfFile')
                 },
                 {
-                    'libFolder': launch.substitutions.LaunchConfiguration('libFolder')
+                    'libFolder': PathJoinSubstitution([
+                        launch.substitutions.LaunchConfiguration('libFolder'),
+                        'mpc',
+                    ])
                 }
             ]
         ),
@@ -88,7 +92,10 @@ def generate_launch_description():
                     'urdfFile': launch.substitutions.LaunchConfiguration('urdfFile')
                 },
                 {
-                    'libFolder': launch.substitutions.LaunchConfiguration('libFolder')
+                    'libFolder': PathJoinSubstitution([
+                        launch.substitutions.LaunchConfiguration('libFolder'),
+                        'mpc',
+                    ])
                 }
             ]
         ),
@@ -106,7 +113,10 @@ def generate_launch_description():
                     'urdfFile': launch.substitutions.LaunchConfiguration('urdfFile')
                 },
                 {
-                    'libFolder': launch.substitutions.LaunchConfiguration('libFolder')
+                    'libFolder': PathJoinSubstitution([
+                        launch.substitutions.LaunchConfiguration('libFolder'),
+                        'mrt',
+                    ])
                 }
             ]
         ),

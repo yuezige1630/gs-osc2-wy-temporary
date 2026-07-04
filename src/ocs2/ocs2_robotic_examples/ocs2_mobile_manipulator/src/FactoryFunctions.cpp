@@ -190,7 +190,22 @@ ManipulatorModelInfo createManipulatorModelInfo(const PinocchioInterface& interf
   info.baseFrame = baseFrame;
   // get name of arm joints.
   const auto& jointNames = model.names;
-  info.dofNames = std::vector<std::string>(jointNames.end() - info.armDim, jointNames.end());
+  const size_t numJoints = jointNames.size() - 1;  // exclude "universe"
+  if (info.armDim <= numJoints) {
+    info.dofNames = std::vector<std::string>(jointNames.end() - info.armDim, jointNames.end());
+  } else {
+    // Handle multi-DOF joints (e.g., continuous) where armDim > numJoints
+    info.dofNames.reserve(info.armDim);
+    for (size_t i = 1; i < model.njoints; ++i) {
+      const auto nq = model.nqs[i];
+      for (int j = 0; j < nq; ++j) {
+        info.dofNames.push_back(jointNames[i]);
+      }
+    }
+    if (info.dofNames.size() > info.armDim) {
+      info.dofNames.erase(info.dofNames.begin(), info.dofNames.end() - info.armDim);
+    }
+  }
 
   return info;
 }
