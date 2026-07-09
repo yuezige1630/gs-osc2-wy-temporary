@@ -95,6 +95,7 @@ class DualArmGraspWaypointPlanner final {
     dtRetreatToLift_ = node_->declare_parameter<double>("dt_retreat_to_lift", 1.0);
     dtLiftToCarryUpright_ = node_->declare_parameter<double>("dt_lift_to_carry_upright", 0.8);
     dtCarryUprightToHome_ = node_->declare_parameter<double>("dt_carry_upright_to_home", 1.0);
+    carryHomeAfterGrasp_ = node_->declare_parameter<bool>("carry_home_after_grasp", true);
     enableTransportStage_ = node_->declare_parameter<bool>("enable_transport_stage", false);
     enablePlaceStage_ = node_->declare_parameter<bool>("enable_place_stage", false);
     maintainRigidGraspAfterContact_ = node_->declare_parameter<bool>("maintain_rigid_grasp_after_contact", true);
@@ -159,6 +160,11 @@ class DualArmGraspWaypointPlanner final {
       RCLCPP_WARN(node_->get_logger(),
                   "maintain_rigid_grasp_after_contact=false is not supported in the two-stage workflow; rigid grasp will "
                   "be enforced after contact.");
+    }
+    if (!carryHomeAfterGrasp_) {
+      RCLCPP_INFO(node_->get_logger(),
+                  "carry_home_after_grasp=false: box_pose trajectories will stop at the box grasp pose instead of "
+                  "retreating, lifting, and carrying home.");
     }
     if (dryRunMode_) {
       RCLCPP_INFO(node_->get_logger(),
@@ -311,10 +317,15 @@ class DualArmGraspWaypointPlanner final {
   std::string formatGraspSuccessMessage(const std::string& leadIn, const std::string& triggerSource,
                                         const GraspSnapshot& snapshot, const ActiveCarrySession& carrySession) const {
     std::ostringstream stream;
-    stream << leadIn << " " << triggerSource << ". Lift box center=" << formatVector(carrySession.holdBoxPose.position)
-           << ", carry-upright center=" << formatVector(carrySession.carryUprightBoxPose.position)
-           << ", carry-home center=" << formatVector(carrySession.carryHomeBoxPose.position)
-           << ", left grasp=" << formatVector(snapshot.graspPoses[0].position) << ", right grasp="
+    stream << leadIn << " " << triggerSource << ". ";
+    if (carryHomeAfterGrasp_) {
+      stream << "Lift box center=" << formatVector(carrySession.holdBoxPose.position)
+             << ", carry-upright center=" << formatVector(carrySession.carryUprightBoxPose.position)
+             << ", carry-home center=" << formatVector(carrySession.carryHomeBoxPose.position);
+    } else {
+      stream << "Holding at box center=" << formatVector(carrySession.holdBoxPose.position);
+    }
+    stream << ", left grasp=" << formatVector(snapshot.graspPoses[0].position) << ", right grasp="
            << formatVector(snapshot.graspPoses[1].position) << ".";
     return stream.str();
   }
@@ -564,15 +575,20 @@ class DualArmGraspWaypointPlanner final {
     const double clearanceBaseZ = std::max(minTableClearance_, snapshot.boxPose.position.z() + minBoxClearance_);
 
     PoseData holdBoxPose = snapshot.boxPose;
-    holdBoxPose.position.z() = std::max(snapshot.boxPose.position.z() + liftDistance_, clearanceBaseZ);
+    PoseData carryUprightBoxPose = snapshot.boxPose;
+    PoseData carryHomeBoxPose = snapshot.boxPose;
 
-    PoseData carryHomeBoxPose;
-    carryHomeBoxPose.position = Eigen::Vector3d(carryHomeBoxX_, carryHomeBoxY_, carryHomeBoxZ_);
-    carryHomeBoxPose.orientation = baseLinkAlignedBoxOrientation();
-    if (!isCarryHomeBoxPoseSafe(carryHomeBoxPose.position, boxSizeX_, boxSizeZ_, carryHomeFrontClearance_,
-                                carryHomeTableClearance_, &errorMessage)) {
-      errorMessage = "Carry-home box pose invalid: " + errorMessage;
-      return false;
+    if (carryHomeAfterGrasp_) {
+      holdBoxPose.position.z() = std::max(snapshot.boxPose.position.z() + liftDistance_, clearanceBaseZ);
+      carryUprightBoxPose = holdBoxPose;
+      carryUprightBoxPose.orientation = baseLinkAlignedBoxOrientation();
+      carryHomeBoxPose.position = Eigen::Vector3d(carryHomeBoxX_, carryHomeBoxY_, carryHomeBoxZ_);
+      carryHomeBoxPose.orientation = baseLinkAlignedBoxOrientation();
+      if (!isCarryHomeBoxPoseSafe(carryHomeBoxPose.position, boxSizeX_, boxSizeZ_, carryHomeFrontClearance_,
+                                  carryHomeTableClearance_, &errorMessage)) {
+        errorMessage = "Carry-home box pose invalid: " + errorMessage;
+        return false;
+      }
     }
 
     const Eigen::Quaterniond inverseBoxOrientation = snapshot.boxPose.orientation.conjugate();
@@ -581,8 +597,7 @@ class DualArmGraspWaypointPlanner final {
     carrySession.active = true;
     carrySession.graspBoxPose = snapshot.boxPose;
     carrySession.holdBoxPose = holdBoxPose;
-    carrySession.carryUprightBoxPose = holdBoxPose;
-    carrySession.carryUprightBoxPose.orientation = baseLinkAlignedBoxOrientation();
+    carrySession.carryUprightBoxPose = carryUprightBoxPose;
     carrySession.carryHomeBoxPose = carryHomeBoxPose;
 
     for (size_t armIndex = 0; armIndex < 2; ++armIndex) {
@@ -618,14 +633,18 @@ class DualArmGraspWaypointPlanner final {
       carrySession.eeOrientationsInBoxFrame[armIndex] = orientationInBoxFrame;
       lift = composeEndEffectorPose(holdBoxPose, armIndex, carrySession);
 
-      const PoseData carryUpright = composeEndEffectorPose(carrySession.carryUprightBoxPose, armIndex, carrySession);
-      const PoseData carryHome = composeEndEffectorPose(carryHomeBoxPose, armIndex, carrySession);
+      if (carryHomeAfterGrasp_) {
+        const PoseData carryUpright = composeEndEffectorPose(carrySession.carryUprightBoxPose, armIndex, carrySession);
+        const PoseData carryHome = composeEndEffectorPose(carryHomeBoxPose, armIndex, carrySession);
+        armWaypoints[armIndex] = {currentPoses[armIndex], via, preGrasp, graspPose, hold, retreat, lift, carryUpright,
+                                  carryHome};
+      } else {
+        armWaypoints[armIndex] = {currentPoses[armIndex], via, preGrasp, graspPose, hold};
+      }
 
-      armWaypoints[armIndex] = {currentPoses[armIndex], via, preGrasp, graspPose, hold, retreat, lift, carryUpright,
-                                carryHome};
-
-      if (via.position.z() < clearanceBaseZ - 1e-9 || lift.position.z() < clearanceBaseZ - 1e-9) {
-        errorMessage = "Generated via/lift waypoint violates box or table clearance.";
+      if (via.position.z() < clearanceBaseZ - 1e-9 || (carryHomeAfterGrasp_ && lift.position.z() < clearanceBaseZ - 1e-9)) {
+        errorMessage = carryHomeAfterGrasp_ ? "Generated via/lift waypoint violates box or table clearance."
+                                            : "Generated via waypoint violates box or table clearance.";
         return false;
       }
     }
@@ -634,20 +653,28 @@ class DualArmGraspWaypointPlanner final {
       return false;
     }
 
-    timeOffsets = {0.0,
-                   scaledTime(dtCurrentToVia_),
-                   scaledTime(dtCurrentToVia_ + dtViaToPregrasp_),
-                   scaledTime(dtCurrentToVia_ + dtViaToPregrasp_ + dtPregraspToGrasp_),
-                   scaledTime(dtCurrentToVia_ + dtViaToPregrasp_ + dtPregraspToGrasp_ + graspHoldSec_),
-                   scaledTime(dtCurrentToVia_ + dtViaToPregrasp_ + dtPregraspToGrasp_ + graspHoldSec_ +
-                              dtGraspToRetreat_),
-                   scaledTime(dtCurrentToVia_ + dtViaToPregrasp_ + dtPregraspToGrasp_ + graspHoldSec_ +
-                              dtGraspToRetreat_ + dtRetreatToLift_),
-                   scaledTime(dtCurrentToVia_ + dtViaToPregrasp_ + dtPregraspToGrasp_ + graspHoldSec_ +
-                              dtGraspToRetreat_ + dtRetreatToLift_ + dtLiftToCarryUpright_),
-                   scaledTime(dtCurrentToVia_ + dtViaToPregrasp_ + dtPregraspToGrasp_ + graspHoldSec_ +
-                              dtGraspToRetreat_ + dtRetreatToLift_ + dtLiftToCarryUpright_ +
-                              dtCarryUprightToHome_)};
+    if (carryHomeAfterGrasp_) {
+      timeOffsets = {0.0,
+                     scaledTime(dtCurrentToVia_),
+                     scaledTime(dtCurrentToVia_ + dtViaToPregrasp_),
+                     scaledTime(dtCurrentToVia_ + dtViaToPregrasp_ + dtPregraspToGrasp_),
+                     scaledTime(dtCurrentToVia_ + dtViaToPregrasp_ + dtPregraspToGrasp_ + graspHoldSec_),
+                     scaledTime(dtCurrentToVia_ + dtViaToPregrasp_ + dtPregraspToGrasp_ + graspHoldSec_ +
+                                dtGraspToRetreat_),
+                     scaledTime(dtCurrentToVia_ + dtViaToPregrasp_ + dtPregraspToGrasp_ + graspHoldSec_ +
+                                dtGraspToRetreat_ + dtRetreatToLift_),
+                     scaledTime(dtCurrentToVia_ + dtViaToPregrasp_ + dtPregraspToGrasp_ + graspHoldSec_ +
+                                dtGraspToRetreat_ + dtRetreatToLift_ + dtLiftToCarryUpright_),
+                     scaledTime(dtCurrentToVia_ + dtViaToPregrasp_ + dtPregraspToGrasp_ + graspHoldSec_ +
+                                dtGraspToRetreat_ + dtRetreatToLift_ + dtLiftToCarryUpright_ +
+                                dtCarryUprightToHome_)};
+    } else {
+      timeOffsets = {0.0,
+                     scaledTime(dtCurrentToVia_),
+                     scaledTime(dtCurrentToVia_ + dtViaToPregrasp_),
+                     scaledTime(dtCurrentToVia_ + dtViaToPregrasp_ + dtPregraspToGrasp_),
+                     scaledTime(dtCurrentToVia_ + dtViaToPregrasp_ + dtPregraspToGrasp_ + graspHoldSec_)};
+    }
     return true;
   }
 
@@ -1110,6 +1137,7 @@ class DualArmGraspWaypointPlanner final {
   double dtRetreatToLift_ = 1.0;
   double dtLiftToCarryUpright_ = 0.8;
   double dtCarryUprightToHome_ = 1.0;
+  bool carryHomeAfterGrasp_ = true;
   bool enableTransportStage_ = false;
   bool enablePlaceStage_ = false;
   bool maintainRigidGraspAfterContact_ = true;

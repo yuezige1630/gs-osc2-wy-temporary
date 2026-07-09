@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ocs2_mobile_manipulator/ManipulatorModelInfo.h>
 #include <ocs2_mobile_manipulator/MobileManipulatorInterface.h>
 #include <ocs2_mobile_manipulator_ros/MobileManipulatorDummyVisualization.h>
+#include <ocs2_mobile_manipulator_ros/JointStateHardwareBridgeHelpers.h>
 #include <ocs2_ros_interfaces/common/RosMsgHelpers.h>
 #include <urdf/model.h>
 
@@ -51,26 +52,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace ocs2 {
 namespace mobile_manipulator {
-
-namespace {
-
-void collectMovableJointNames(const urdf::LinkConstSharedPtr& link, std::vector<std::string>& jointNames) {
-  if (!link) {
-    return;
-  }
-
-  for (const auto& childJoint : link->child_joints) {
-    if (childJoint && childJoint->type != urdf::Joint::FIXED) {
-      jointNames.push_back(childJoint->name);
-    }
-  }
-
-  for (const auto& childLink : link->child_links) {
-    collectMovableJointNames(childLink, jointNames);
-  }
-}
-
-}  // namespace
 
 /******************************************************************************************************/
 /******************************************************************************************************/
@@ -148,13 +129,7 @@ void MobileManipulatorDummyVisualization::launchVisualizerNode() {
 /******************************************************************************************************/
 /******************************************************************************************************/
 void MobileManipulatorDummyVisualization::loadUrdfJointNames(const std::string& urdfFile) {
-  urdf::Model urdfModel;
-  if (!urdfModel.initFile(urdfFile)) {
-    throw std::runtime_error("[MobileManipulatorDummyVisualization] Failed to parse URDF file: " + urdfFile);
-  }
-
-  urdfJointNames_.clear();
-  collectMovableJointNames(urdfModel.getRoot(), urdfJointNames_);
+  urdfJointNames_ = loadMovableJointNamesFromUrdf(urdfFile);
 
   if (urdfJointNames_.empty()) {
     RCLCPP_WARN(node_->get_logger(),

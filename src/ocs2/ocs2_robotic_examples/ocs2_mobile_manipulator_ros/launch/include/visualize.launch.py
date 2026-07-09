@@ -25,17 +25,23 @@ def generate_launch_description():
             name='rvizconfig',
             default_value=get_package_share_directory('ocs2_mobile_manipulator_ros') + "/rviz/mobile_manipulator.rviz"
         ),
+        launch.actions.DeclareLaunchArgument(
+            name='joint_states_topic',
+            default_value='/joint_states'
+        ),
         Node(
             package="robot_state_publisher",
             executable="robot_state_publisher",
             output="screen",
             arguments=[LaunchConfiguration("urdfFile")],
+            remappings=[("joint_states", LaunchConfiguration("joint_states_topic"))],
         ),
         Node(
             package="joint_state_publisher_gui",
             executable="joint_state_publisher_gui",
             arguments=[LaunchConfiguration("urdfFile")],
             condition=IfCondition(LaunchConfiguration("test")),
+            remappings=[("joint_states", LaunchConfiguration("joint_states_topic"))],
         ),
         Node(
             package='rviz2',

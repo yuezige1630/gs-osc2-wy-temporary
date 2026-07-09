@@ -3,6 +3,38 @@ import os
 import launch
 import launch_ros.actions
 from ament_index_python.packages import get_package_share_directory
+from launch.actions import OpaqueFunction
+import rclpy
+
+
+def _assert_no_existing_grasp_stack(context):
+    rclpy.init(args=None)
+    node = rclpy.create_node("_grasp_waypoint_launch_preflight")
+    try:
+        end_time = node.get_clock().now().nanoseconds + int(1.5e9)
+        while node.get_clock().now().nanoseconds < end_time:
+            rclpy.spin_once(node, timeout_sec=0.1)
+
+        existing_names = {name for name, _namespace in node.get_node_names_and_namespaces()}
+        conflicting_names = sorted(existing_names.intersection({
+            "dual_arm_grasp_waypoint_planner",
+            "gensong_world_to_base_tf",
+            "mobile_manipulator_mpc",
+            "mobile_manipulator_mrt_node",
+            "robot_state_publisher",
+        }))
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
+
+    if conflicting_names:
+        raise RuntimeError(
+            "[grasp_waypoint_planner.launch.py] Refusing to start because an existing grasp planner stack is already "
+            "running. Conflicting nodes: " + ", ".join(conflicting_names) +
+            ". Stop the previous launch before starting a new one."
+        )
+
+    return []
 
 
 def generate_launch_description():
@@ -14,7 +46,7 @@ def generate_launch_description():
     return launch.LaunchDescription([
         launch.actions.DeclareLaunchArgument(
             name='rviz',
-            default_value='true'
+            default_value='false'
         ),
         launch.actions.DeclareLaunchArgument(
             name='urdfFile',
@@ -63,19 +95,23 @@ def generate_launch_description():
         ),
         launch.actions.DeclareLaunchArgument(
             name='grasp_x_offset',
-            default_value='0.0'
+            default_value='-0.065'
         ),
         launch.actions.DeclareLaunchArgument(
             name='grasp_z_offset',
-            default_value='0.0'
+            default_value='0.08'
         ),
         launch.actions.DeclareLaunchArgument(
             name='grasp_hold_sec',
-            default_value='0.5'
+            default_value='2.0'
         ),
         launch.actions.DeclareLaunchArgument(
             name='trajectory_time_scale',
-            default_value='0.5'
+            default_value='1.0'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='carry_home_after_grasp',
+            default_value='false'
         ),
         launch.actions.DeclareLaunchArgument(
             name='dt_lift_to_carry_upright',
@@ -169,6 +205,7 @@ def generate_launch_description():
             name='transport_offset_z',
             default_value='0.0'
         ),
+        OpaqueFunction(function=_assert_no_existing_grasp_stack),
         launch.actions.IncludeLaunchDescription(
             launch.launch_description_sources.PythonLaunchDescriptionSource(
                 manipulator_launch
@@ -222,6 +259,9 @@ def generate_launch_description():
                 },
                 {
                     'trajectory_time_scale': launch.substitutions.LaunchConfiguration('trajectory_time_scale')
+                },
+                {
+                    'carry_home_after_grasp': launch.substitutions.LaunchConfiguration('carry_home_after_grasp')
                 },
                 {
                     'dt_lift_to_carry_upright': launch.substitutions.LaunchConfiguration('dt_lift_to_carry_upright')

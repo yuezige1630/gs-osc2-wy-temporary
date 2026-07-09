@@ -7,6 +7,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
@@ -35,6 +36,7 @@ set(dependencies
   rclcpp
   tf2_ros
   sensor_msgs
+  std_msgs
   geometry_msgs
   visualization_msgs
   std_srvs
@@ -82,6 +84,15 @@ target_include_directories(mobile_manipulator_dummy_mrt_node PRIVATE
 ament_target_dependencies(mobile_manipulator_dummy_mrt_node ${dependencies})
 target_compile_options(mobile_manipulator_dummy_mrt_node PRIVATE ${OCS2_PINOCCHIO_FLAGS})
 
+add_executable(mobile_manipulator_hardware_mrt_node
+  src/MobileManipulatorHardwareMRT.cpp
+)
+target_include_directories(mobile_manipulator_hardware_mrt_node PRIVATE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+)
+ament_target_dependencies(mobile_manipulator_hardware_mrt_node ${dependencies})
+target_compile_options(mobile_manipulator_hardware_mrt_node PRIVATE ${OCS2_PINOCCHIO_FLAGS})
+
 add_executable(mobile_manipulator_target
   src/MobileManipulatorTarget.cpp
 )
@@ -117,6 +128,7 @@ install(TARGETS
   mobile_manipulator_mpc_node
   mobile_manipulator_distance_visualization
   mobile_manipulator_dummy_mrt_node
+  mobile_manipulator_hardware_mrt_node
   mobile_manipulator_target
   mobile_manipulator_dual_target
   dual_arm_grasp_waypoint_planner
@@ -157,6 +169,20 @@ if(BUILD_TESTING)
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   )
   target_link_libraries(testPostReleaseInitialReturnHelpers Eigen3::Eigen)
+
+  ament_add_gtest(testJointStateHardwareBridge
+    test/testJointStateHardwareBridge.cpp
+  )
+  target_include_directories(testJointStateHardwareBridge PRIVATE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  )
+  ament_target_dependencies(testJointStateHardwareBridge
+    rclcpp
+    sensor_msgs
+    std_msgs
+    urdf
+  )
+  target_link_libraries(testJointStateHardwareBridge Eigen3::Eigen)
 endif()
 
 ament_package()
