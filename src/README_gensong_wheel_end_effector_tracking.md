@@ -5,9 +5,12 @@
 当前流程已经不是旧版的“一次把抓取到放置整段轨迹都规划出来”，而是两段式：
 
 1. 发送 `box_pose`，机器人自动执行第一段：抓取 -> 抬起 -> 持箱等待。
-2. 发送 `place_box_pose`，机器人自动执行第二段：搬运 -> 预放置 -> 放置 -> 后撤。
+2. 发送 `place_box_pose`，机器人自动执行第二段的前半段：搬运 -> 预放置 -> 放置 -> 后撤 -> 松开/等待位。
+3. 机器人停在等待位后，再调用 `continue_return_to_initial_pose` service，机器人继续执行第二段后半段：直立过渡 -> 任务初始双臂末端位姿。
 
 在这两段之间，双手和箱子保持刚体关系，不会中途松掉箱子。
+第一段结束时，箱子会继续被带到一个预定义的 `upright/home` 位姿，箱体朝向与 `base_link` 轴对齐，同时会检查箱体长度对应的前向 clearance，避免箱子贴得太靠近机器人。
+放置段在 `release` 之后会先停在一个“松开/等待位姿”；等你再调用 `continue_return_to_initial_pose` service，机器人再回到“直立过渡位姿”，最后回到“任务初始双臂末端位姿”。这里的初始位姿是任务启动时第一份有效 observation 锁存下来的机器人默认位姿，不是上面这个 `home` 点。
 
 ## 1. 当前接口语义
 
@@ -19,12 +22,16 @@
 - `place_box_pose`
   - 类型：`geometry_msgs/msg/PoseStamped`
   - 语义：箱子最终放置中心位姿
-  - 触发：当规划器处于 `HOLDING_OBJECT` 时，收到它会自动启动第二段放置
+  - 触发：当规划器处于 `HOLDING_OBJECT` 时，收到它会自动启动第二段放置的前半段，并停在等待位
 
 - `plan_and_send_grasp_trajectory`
   - 类型：`std_srvs/srv/Trigger`
   - 作用：兼容保留，只用于“基于最近一次 `box_pose` 手动触发第一段”
   - 现在不是主流程必需接口
+
+- `continue_return_to_initial_pose`
+  - 类型：`std_srvs/srv/Trigger`
+  - 作用：在 `place_box_pose` 完成后，继续执行直立过渡 -> 任务初始位姿
 
 注意：
 
@@ -71,9 +78,10 @@ ros2 launch ocs2_mobile_manipulator_ros grasp_waypoint_test.launch.py rviz:=fals
 默认行为：
 
 1. 先持续发布 `box_pose`
-2. 机器人自动执行抓取并抬起
+2. 机器人自动执行抓取、抬起，并继续回到 `upright/home` 位姿
 3. 默认 `8` 秒后开始发布 `place_box_pose`
-4. 机器人自动继续放置
+4. 机器人自动执行释放、后撤，并停在等待位
+5. 你再调用 `continue_return_to_initial_pose` service，机器人继续回初始位
 
 如果你想改成更长等待时间：
 
@@ -85,6 +93,27 @@ ros2 launch ocs2_mobile_manipulator_ros grasp_waypoint_test.launch.py place_trig
 
 ```bash
 ros2 launch ocs2_mobile_manipulator_ros grasp_waypoint_planner.launch.py grasp_hold_sec:=2.0
+```
+
+如果你想调整第一段结束后的 `upright/home` 点，可以直接改这些参数：
+
+```bash
+ros2 launch ocs2_mobile_manipulator_ros grasp_waypoint_planner.launch.py \
+  carry_home_box_x:=0.65 carry_home_box_y:=0.0 carry_home_box_z:=1.20 \
+  carry_home_front_clearance:=0.05 carry_home_table_clearance:=0.05
+```
+
+如果你想调整放置段 `release` 之后回到任务初始位姿这整段尾部的总时长，可以改这个参数：
+
+```bash
+ros2 launch ocs2_mobile_manipulator_ros grasp_waypoint_planner.launch.py \
+  dt_post_release_retreat_to_initial:=1.0
+```
+
+如果你想让机器人从等待位继续回初始位，调用这个 service：
+
+```bash
+ros2 service call /continue_return_to_initial_pose std_srvs/srv/Trigger "{}"
 ```
 
 如果你想直接做 `box_pose` 的可达范围扫参，可以打开 `sweep_mode`。这个模式不会驱动真实抓取动作，只会把每个点送进评估接口，并写出 CSV 和 summary：
@@ -174,12 +203,12 @@ ros2 launch ocs2_mobile_manipulator_ros grasp_waypoint_planner.launch.py \
 ```bash
 source /opt/ros/jazzy/setup.bash
 source /home/robot-zhao/work/gensong_ros2/install/setup.bash
-ros2 topic pub --once /box_pose geometry_msgs/msg/PoseStamped "{header: {frame_id: base_link}, pose: {position: {x: 0.8994, y: -0.0327, z: 1.1000}, orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}}}"
+ros2 topic pub --once /box_pose geometry_msgs/msg/PoseStamped "{header: {frame_id: base_link}, pose: {position: {x: 0.88556, y: 0, z: 0.91074}, orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}}}"
 ```
 
 发送后，规划器会自动启动第一段，不需要再调 service。
 
-第一段结束后，机器人会停在“抬起后的持箱等待位”。
+第一段结束后，机器人会停在“upright/home 持箱等待位”。
 
 ### 5.2 发布放置点 `place_box_pose`
 
@@ -193,9 +222,19 @@ source /home/robot-zhao/work/gensong_ros2/install/setup.bash
 ros2 topic pub --once /place_box_pose geometry_msgs/msg/PoseStamped "{header: {frame_id: base_link}, pose: {position: {x: 0.7500, y: 0.2000, z: 1.1000}, orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}}}"
 ```
 
-发送后，规划器会自动启动第二段放置。
+发送后，规划器会自动启动第二段放置的前半段，并停在等待位。
 
-### 5.3 如果你还想手动用旧 service 触发第一段
+### 5.3 继续回初始位姿
+
+在机器人停稳在等待位后，再调用新的继续 service：
+
+```bash
+ros2 service call /continue_return_to_initial_pose std_srvs/srv/Trigger "{}"
+```
+
+调用后，机器人会执行直立过渡，然后回到任务初始双臂末端位姿。
+
+### 5.4 如果你还想手动用旧 service 触发第一段
 
 只有在下面两个条件同时满足时才有意义：
 
@@ -235,7 +274,7 @@ ros2 launch ocs2_mobile_manipulator_ros grasp_waypoint_planner.launch.py
 ```bash
 source /opt/ros/jazzy/setup.bash
 source /home/robot-zhao/work/gensong_ros2/install/setup.bash
-ros2 topic pub --once /box_pose geometry_msgs/msg/PoseStamped "{header: {frame_id: base_link}, pose: {position: {x: 0.8994, y: -0.0327, z: 1.1000}, orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}}}"
+ros2 topic pub --once /box_pose geometry_msgs/msg/PoseStamped "{header: {frame_id: base_link}, pose: {position: {x: 0.82795, y: 0, z: 0.91074}, orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}}}"
 ```
 
 等待机器人完成抓取并抬起。

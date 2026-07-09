@@ -138,4 +138,25 @@ install(PROGRAMS
   scripts/dual_arm_tracking_error_tester.py
   DESTINATION lib/${PROJECT_NAME}
 )
+
+if(BUILD_TESTING)
+  find_package(ament_cmake_gtest REQUIRED)
+
+  ament_add_gtest(testCarryHomePoseHelpers
+    test/testCarryHomePoseHelpers.cpp
+  )
+  target_include_directories(testCarryHomePoseHelpers PRIVATE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  )
+  target_link_libraries(testCarryHomePoseHelpers Eigen3::Eigen)
+
+  ament_add_gtest(testPostReleaseInitialReturnHelpers
+    test/testPostReleaseInitialReturnHelpers.cpp
+  )
+  target_include_directories(testPostReleaseInitialReturnHelpers PRIVATE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  )
+  target_link_libraries(testPostReleaseInitialReturnHelpers Eigen3::Eigen)
+endif()
+
 ament_package()

@@ -28,6 +28,8 @@ Copyright (c) 2026.
 #include <ocs2_core/misc/LoadData.h>
 #include <ocs2_mobile_manipulator/FactoryFunctions.h>
 #include <ocs2_mobile_manipulator/MobileManipulatorPinocchioMapping.h>
+#include <ocs2_mobile_manipulator_ros/CarryHomePoseHelpers.h>
+#include <ocs2_mobile_manipulator_ros/PostReleaseInitialReturnHelpers.h>
 #include <ocs2_msgs/srv/evaluate_box_pose.hpp>
 #include <ocs2_ros_interfaces/command/TargetTrajectoriesRosPublisher.h>
 #include <ocs2_ros_interfaces/common/RosMsgConversions.h>
@@ -88,9 +90,11 @@ class DualArmGraspWaypointPlanner final {
     dtCurrentToVia_ = node_->declare_parameter<double>("dt_current_to_via", 1.0);
     dtViaToPregrasp_ = node_->declare_parameter<double>("dt_via_to_pregrasp", 1.0);
     dtPregraspToGrasp_ = node_->declare_parameter<double>("dt_pregrasp_to_grasp", 0.8);
-    graspHoldSec_ = node_->declare_parameter<double>("grasp_hold_sec", 2.0);
+    graspHoldSec_ = node_->declare_parameter<double>("grasp_hold_sec", 0.5);
     dtGraspToRetreat_ = node_->declare_parameter<double>("dt_grasp_to_retreat", 0.8);
     dtRetreatToLift_ = node_->declare_parameter<double>("dt_retreat_to_lift", 1.0);
+    dtLiftToCarryUpright_ = node_->declare_parameter<double>("dt_lift_to_carry_upright", 0.8);
+    dtCarryUprightToHome_ = node_->declare_parameter<double>("dt_carry_upright_to_home", 1.0);
     enableTransportStage_ = node_->declare_parameter<bool>("enable_transport_stage", false);
     enablePlaceStage_ = node_->declare_parameter<bool>("enable_place_stage", false);
     maintainRigidGraspAfterContact_ = node_->declare_parameter<bool>("maintain_rigid_grasp_after_contact", true);
@@ -100,8 +104,13 @@ class DualArmGraspWaypointPlanner final {
     dtPrePlaceToPlace_ = node_->declare_parameter<double>("dt_pre_place_to_place", 1.0);
     dtPlaceToRelease_ = node_->declare_parameter<double>("dt_place_to_release", 0.5);
     dtReleaseToPostReleaseRetreat_ = node_->declare_parameter<double>("dt_release_to_post_release_retreat", 1.0);
-    dtPostReleaseRetreatToHome_ = node_->declare_parameter<double>("dt_post_release_retreat_to_home", 1.0);
-    trajectoryTimeScale_ = node_->declare_parameter<double>("trajectory_time_scale", 1.0);
+    dtPostReleaseRetreatToInitial_ = node_->declare_parameter<double>("dt_post_release_retreat_to_initial", 1.0);
+    trajectoryTimeScale_ = node_->declare_parameter<double>("trajectory_time_scale", 0.5);
+    carryHomeBoxX_ = node_->declare_parameter<double>("carry_home_box_x", 0.6);
+    carryHomeBoxY_ = node_->declare_parameter<double>("carry_home_box_y", 0.0);
+    carryHomeBoxZ_ = node_->declare_parameter<double>("carry_home_box_z", 1.0);
+    carryHomeFrontClearance_ = node_->declare_parameter<double>("carry_home_front_clearance", 0.05);
+    carryHomeTableClearance_ = node_->declare_parameter<double>("carry_home_table_clearance", minTableClearance_);
     prePlaceHeight_ = node_->declare_parameter<double>("pre_place_height", 0.10);
     postReleaseRetreatDistance_ = node_->declare_parameter<double>("post_release_retreat_distance", 0.15);
     postReleaseRetreatHeight_ = node_->declare_parameter<double>("post_release_retreat_height", 0.05);
@@ -127,6 +136,17 @@ class DualArmGraspWaypointPlanner final {
     }
     if (!std::isfinite(trajectoryTimeScale_) || trajectoryTimeScale_ <= 0.0) {
       throw std::runtime_error("[DualArmGraspWaypointPlanner] trajectory_time_scale must be finite and positive.");
+    }
+    if (!std::isfinite(dtLiftToCarryUpright_) || dtLiftToCarryUpright_ <= 0.0 ||
+        !std::isfinite(dtCarryUprightToHome_) || dtCarryUprightToHome_ <= 0.0) {
+      throw std::runtime_error("[DualArmGraspWaypointPlanner] carry-home timing parameters must be finite and positive.");
+    }
+    if (!std::isfinite(carryHomeBoxX_) || !std::isfinite(carryHomeBoxY_) || !std::isfinite(carryHomeBoxZ_)) {
+      throw std::runtime_error("[DualArmGraspWaypointPlanner] carry_home_box_* parameters must be finite.");
+    }
+    if (!std::isfinite(carryHomeFrontClearance_) || carryHomeFrontClearance_ < 0.0 ||
+        !std::isfinite(carryHomeTableClearance_) || carryHomeTableClearance_ < 0.0) {
+      throw std::runtime_error("[DualArmGraspWaypointPlanner] carry_home clearances must be finite and non-negative.");
     }
     graspEdgeOffsetY_ = std::max(0.0, 0.5 * boxSizeY_ - graspEdgeInsetY_);
 
@@ -162,6 +182,12 @@ class DualArmGraspWaypointPlanner final {
         "plan_and_send_grasp_trajectory",
         [this](const std::shared_ptr<std_srvs::srv::Trigger::Request>&,
                std::shared_ptr<std_srvs::srv::Trigger::Response> response) { handlePlanRequest(*response); });
+    continueReturnToInitialService_ = node_->create_service<std_srvs::srv::Trigger>(
+        "continue_return_to_initial_pose",
+        [this](const std::shared_ptr<std_srvs::srv::Trigger::Request>&,
+               std::shared_ptr<std_srvs::srv::Trigger::Response> response) {
+          handleContinueReturnToInitialRequest(*response);
+        });
     evaluateService_ = node_->create_service<ocs2_msgs::srv::EvaluateBoxPose>(
         "evaluate_box_pose",
         [this](const std::shared_ptr<ocs2_msgs::srv::EvaluateBoxPose::Request>& request,
@@ -178,7 +204,14 @@ class DualArmGraspWaypointPlanner final {
   void spin() { rclcpp::spin(node_); }
 
  private:
-  enum class PlannerState { IDLE, EXECUTING_GRASP, HOLDING_OBJECT, EXECUTING_PLACE };
+  enum class PlannerState {
+    IDLE,
+    EXECUTING_GRASP,
+    HOLDING_OBJECT,
+    EXECUTING_PLACE,
+    WAITING_FOR_INITIAL_RETURN,
+    EXECUTING_INITIAL_RETURN
+  };
 
   struct PoseData {
     Eigen::Vector3d position = Eigen::Vector3d::Zero();
@@ -200,6 +233,8 @@ class DualArmGraspWaypointPlanner final {
     bool active = false;
     PoseData graspBoxPose;
     PoseData holdBoxPose;
+    PoseData carryUprightBoxPose;
+    PoseData carryHomeBoxPose;
     std::array<Eigen::Vector3d, 2> eeTranslationsInBoxFrame{{Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero()}};
     std::array<Eigen::Quaterniond, 2> eeOrientationsInBoxFrame{
         {Eigen::Quaterniond::Identity(), Eigen::Quaterniond::Identity()}};
@@ -217,6 +252,10 @@ class DualArmGraspWaypointPlanner final {
         return "HOLDING_OBJECT";
       case PlannerState::EXECUTING_PLACE:
         return "EXECUTING_PLACE";
+      case PlannerState::WAITING_FOR_INITIAL_RETURN:
+        return "WAITING_FOR_INITIAL_RETURN";
+      case PlannerState::EXECUTING_INITIAL_RETURN:
+        return "EXECUTING_INITIAL_RETURN";
     }
     return "UNKNOWN";
   }
@@ -272,9 +311,10 @@ class DualArmGraspWaypointPlanner final {
   std::string formatGraspSuccessMessage(const std::string& leadIn, const std::string& triggerSource,
                                         const GraspSnapshot& snapshot, const ActiveCarrySession& carrySession) const {
     std::ostringstream stream;
-    stream << leadIn << " " << triggerSource << ". Hold box center=" << formatVector(carrySession.holdBoxPose.position)
-           << ", left grasp="
-           << formatVector(snapshot.graspPoses[0].position) << ", right grasp="
+    stream << leadIn << " " << triggerSource << ". Lift box center=" << formatVector(carrySession.holdBoxPose.position)
+           << ", carry-upright center=" << formatVector(carrySession.carryUprightBoxPose.position)
+           << ", carry-home center=" << formatVector(carrySession.carryHomeBoxPose.position)
+           << ", left grasp=" << formatVector(snapshot.graspPoses[0].position) << ", right grasp="
            << formatVector(snapshot.graspPoses[1].position) << ".";
     return stream.str();
   }
@@ -358,6 +398,17 @@ class DualArmGraspWaypointPlanner final {
   void clearCarrySessionUnlocked() {
     carrySession_ = ActiveCarrySession{};
     hasPlaceBoxPose_ = false;
+    hasPostReleaseRetreatEndEffectorPoses_ = false;
+    postReleaseRetreatEndEffectorPoses_ = {};
+  }
+
+  void cacheTaskStartPoseIfNeededUnlocked() {
+    if (hasTaskStartEndEffectorPoses_) {
+      return;
+    }
+    taskStartEndEffectorPoses_ = computeCurrentEndEffectorPoses(latestObservation_);
+    hasTaskStartEndEffectorPoses_ = true;
+    RCLCPP_INFO(node_->get_logger(), "Cached task-start end-effector poses for the return-to-initial stage.");
   }
 
   void updatePlannerStateUnlocked(double currentTime) {
@@ -370,9 +421,18 @@ class DualArmGraspWaypointPlanner final {
 
     if (plannerState_ == PlannerState::EXECUTING_PLACE &&
         currentTime + kExecutionCompletionTolerance >= activeTrajectoryEndTime_) {
+      plannerState_ = PlannerState::WAITING_FOR_INITIAL_RETURN;
+      hasPlaceBoxPose_ = false;
+      RCLCPP_INFO(node_->get_logger(),
+                  "Post-release retreat complete. Waiting for continue_return_to_initial_pose service.");
+      return;
+    }
+
+    if (plannerState_ == PlannerState::EXECUTING_INITIAL_RETURN &&
+        currentTime + kExecutionCompletionTolerance >= activeTrajectoryEndTime_) {
       plannerState_ = PlannerState::IDLE;
       clearCarrySessionUnlocked();
-      RCLCPP_INFO(node_->get_logger(), "Place trajectory complete. Transitioned to IDLE.");
+      RCLCPP_INFO(node_->get_logger(), "Initial return complete. Transitioned to IDLE.");
     }
   }
 
@@ -506,12 +566,24 @@ class DualArmGraspWaypointPlanner final {
     PoseData holdBoxPose = snapshot.boxPose;
     holdBoxPose.position.z() = std::max(snapshot.boxPose.position.z() + liftDistance_, clearanceBaseZ);
 
+    PoseData carryHomeBoxPose;
+    carryHomeBoxPose.position = Eigen::Vector3d(carryHomeBoxX_, carryHomeBoxY_, carryHomeBoxZ_);
+    carryHomeBoxPose.orientation = baseLinkAlignedBoxOrientation();
+    if (!isCarryHomeBoxPoseSafe(carryHomeBoxPose.position, boxSizeX_, boxSizeZ_, carryHomeFrontClearance_,
+                                carryHomeTableClearance_, &errorMessage)) {
+      errorMessage = "Carry-home box pose invalid: " + errorMessage;
+      return false;
+    }
+
     const Eigen::Quaterniond inverseBoxOrientation = snapshot.boxPose.orientation.conjugate();
 
     carrySession = ActiveCarrySession{};
     carrySession.active = true;
     carrySession.graspBoxPose = snapshot.boxPose;
     carrySession.holdBoxPose = holdBoxPose;
+    carrySession.carryUprightBoxPose = holdBoxPose;
+    carrySession.carryUprightBoxPose.orientation = baseLinkAlignedBoxOrientation();
+    carrySession.carryHomeBoxPose = carryHomeBoxPose;
 
     for (size_t armIndex = 0; armIndex < 2; ++armIndex) {
       PoseData graspPose = snapshot.graspPoses[armIndex];
@@ -546,7 +618,11 @@ class DualArmGraspWaypointPlanner final {
       carrySession.eeOrientationsInBoxFrame[armIndex] = orientationInBoxFrame;
       lift = composeEndEffectorPose(holdBoxPose, armIndex, carrySession);
 
-      armWaypoints[armIndex] = {currentPoses[armIndex], via, preGrasp, graspPose, hold, retreat, lift};
+      const PoseData carryUpright = composeEndEffectorPose(carrySession.carryUprightBoxPose, armIndex, carrySession);
+      const PoseData carryHome = composeEndEffectorPose(carryHomeBoxPose, armIndex, carrySession);
+
+      armWaypoints[armIndex] = {currentPoses[armIndex], via, preGrasp, graspPose, hold, retreat, lift, carryUpright,
+                                carryHome};
 
       if (via.position.z() < clearanceBaseZ - 1e-9 || lift.position.z() < clearanceBaseZ - 1e-9) {
         errorMessage = "Generated via/lift waypoint violates box or table clearance.";
@@ -566,7 +642,12 @@ class DualArmGraspWaypointPlanner final {
                    scaledTime(dtCurrentToVia_ + dtViaToPregrasp_ + dtPregraspToGrasp_ + graspHoldSec_ +
                               dtGraspToRetreat_),
                    scaledTime(dtCurrentToVia_ + dtViaToPregrasp_ + dtPregraspToGrasp_ + graspHoldSec_ +
-                              dtGraspToRetreat_ + dtRetreatToLift_)};
+                              dtGraspToRetreat_ + dtRetreatToLift_),
+                   scaledTime(dtCurrentToVia_ + dtViaToPregrasp_ + dtPregraspToGrasp_ + graspHoldSec_ +
+                              dtGraspToRetreat_ + dtRetreatToLift_ + dtLiftToCarryUpright_),
+                   scaledTime(dtCurrentToVia_ + dtViaToPregrasp_ + dtPregraspToGrasp_ + graspHoldSec_ +
+                              dtGraspToRetreat_ + dtRetreatToLift_ + dtLiftToCarryUpright_ +
+                              dtCarryUprightToHome_)};
     return true;
   }
 
@@ -578,7 +659,7 @@ class DualArmGraspWaypointPlanner final {
     }
 
     const auto currentPoses = computeCurrentEndEffectorPoses(snapshot.observation);
-    const double currentHoldHeight = carrySession_.holdBoxPose.position.z();
+    const double currentHoldHeight = carrySession_.carryHomeBoxPose.position.z();
     const double prePlaceHeight = std::max(currentHoldHeight, snapshot.placeBoxPose.position.z() + prePlaceHeight_);
 
     PoseData transportBoxPose = snapshot.placeBoxPose;
@@ -587,6 +668,7 @@ class DualArmGraspWaypointPlanner final {
     PoseData prePlaceBoxPose = snapshot.placeBoxPose;
     prePlaceBoxPose.position.z() = prePlaceHeight;
 
+    std::array<PoseData, 2> postReleaseRetreatPoses;
     for (size_t armIndex = 0; armIndex < 2; ++armIndex) {
       const PoseData transport = composeEndEffectorPose(transportBoxPose, armIndex, carrySession_);
       const PoseData prePlace = composeEndEffectorPose(prePlaceBoxPose, armIndex, carrySession_);
@@ -607,12 +689,16 @@ class DualArmGraspWaypointPlanner final {
           std::max({release.position.z() + postReleaseRetreatHeight_,
                     snapshot.placeBoxPose.position.z() + minBoxClearance_, minTableClearance_});
 
+      postReleaseRetreatPoses[armIndex] = postReleaseRetreat;
       armWaypoints[armIndex] = {currentPoses[armIndex], transport, prePlace, place, release, postReleaseRetreat};
     }
 
     if (!validateWaypointSet(armWaypoints, errorMessage)) {
       return false;
     }
+
+    postReleaseRetreatEndEffectorPoses_ = postReleaseRetreatPoses;
+    hasPostReleaseRetreatEndEffectorPoses_ = true;
 
     timeOffsets = {0.0,
                    scaledTime(dtLiftToTransport_),
@@ -622,6 +708,27 @@ class DualArmGraspWaypointPlanner final {
                    scaledTime(dtLiftToTransport_ + dtTransportToPrePlace_ + dtPrePlaceToPlace_ + dtPlaceToRelease_ +
                               dtReleaseToPostReleaseRetreat_)};
     return true;
+  }
+
+  bool buildInitialReturnWaypoints(std::array<std::vector<PoseData>, 2>& armWaypoints, std::vector<double>& timeOffsets,
+                                   std::string& errorMessage) {
+    if (!hasTaskStartEndEffectorPoses_) {
+      errorMessage = "No task-start end-effector pose cached yet.";
+      return false;
+    }
+    if (!hasPostReleaseRetreatEndEffectorPoses_) {
+      errorMessage = "No post-release retreat pose cached yet.";
+      return false;
+    }
+
+    const auto currentPoses = computeCurrentEndEffectorPoses(latestObservation_);
+    const auto trajectory = buildPostReleaseInitialReturnTrajectory(
+        currentPoses, postReleaseRetreatEndEffectorPoses_, taskStartEndEffectorPoses_, dtPostReleaseRetreatToInitial_,
+        trajectoryTimeScale_);
+
+    armWaypoints = trajectory.armWaypoints;
+    timeOffsets = trajectory.timeOffsets;
+    return validateWaypointSet(armWaypoints, errorMessage);
   }
 
   TargetTrajectories buildTargetTrajectories(const SystemObservation& observation,
@@ -688,6 +795,7 @@ class DualArmGraspWaypointPlanner final {
       plannerState_ = PlannerState::EXECUTING_GRASP;
       activeTrajectoryEndTime_ = targetTrajectories.timeTrajectory.back();
       hasPlaceBoxPose_ = false;
+      hasPostReleaseRetreatEndEffectorPoses_ = false;
     }
 
     successMessage = formatGraspSuccessMessage("Published grasp-hold trajectory from", triggerSource, snapshot,
@@ -765,15 +873,82 @@ class DualArmGraspWaypointPlanner final {
 
     std::ostringstream stream;
     stream << "Published place trajectory from " << triggerSource << ". place_box_pose="
-           << formatVector(snapshot.placeBoxPose.position) << ".";
+           << formatVector(snapshot.placeBoxPose.position) << ", retreat-left="
+           << formatVector(postReleaseRetreatEndEffectorPoses_[0].position) << ", retreat-right="
+           << formatVector(postReleaseRetreatEndEffectorPoses_[1].position);
+    stream << ".";
     successMessage = stream.str();
     return true;
+  }
+
+  bool planAndPublishContinueReturnToInitial(const std::string& triggerSource, std::string& successMessage,
+                                             std::string& errorMessage) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (hasObservation_) {
+      updatePlannerStateUnlocked(latestObservation_.time);
+    }
+    if (plannerState_ != PlannerState::WAITING_FOR_INITIAL_RETURN) {
+      std::ostringstream stream;
+      stream << "Cannot continue return from " << triggerSource << " while state is " << stateName(plannerState_)
+             << ".";
+      errorMessage = stream.str();
+      return false;
+    }
+    if (!hasTaskStartEndEffectorPoses_) {
+      errorMessage = "No task-start end-effector pose cached yet.";
+      return false;
+    }
+    if (!hasPostReleaseRetreatEndEffectorPoses_) {
+      errorMessage = "No post-release retreat pose cached yet.";
+      return false;
+    }
+    if (latestObservation_.input.size() <= 0) {
+      errorMessage = "Observation input dimension is empty.";
+      return false;
+    }
+
+    std::array<std::vector<PoseData>, 2> armWaypoints;
+    std::vector<double> timeOffsets;
+    if (!buildInitialReturnWaypoints(armWaypoints, timeOffsets, errorMessage)) {
+      return false;
+    }
+
+    const auto targetTrajectories = buildTargetTrajectories(latestObservation_, armWaypoints, timeOffsets);
+    targetTrajectoriesPublisherPtr_->publishTargetTrajectories(targetTrajectories);
+
+    plannerState_ = PlannerState::EXECUTING_INITIAL_RETURN;
+    activeTrajectoryEndTime_ = targetTrajectories.timeTrajectory.back();
+
+    std::ostringstream stream;
+    stream << "Published continue-return trajectory from " << triggerSource << ". retreat-left="
+           << formatVector(postReleaseRetreatEndEffectorPoses_[0].position) << ", retreat-right="
+           << formatVector(postReleaseRetreatEndEffectorPoses_[1].position) << ", return-initial left="
+           << formatVector(taskStartEndEffectorPoses_[0].position) << ", return-initial right="
+           << formatVector(taskStartEndEffectorPoses_[1].position) << ".";
+    successMessage = stream.str();
+    return true;
+  }
+
+  void handleContinueReturnToInitialRequest(std_srvs::srv::Trigger::Response& response) {
+    std::string successMessage;
+    std::string errorMessage;
+    if (!planAndPublishContinueReturnToInitial("service", successMessage, errorMessage)) {
+      response.success = false;
+      response.message = errorMessage;
+      RCLCPP_WARN(node_->get_logger(), "%s", errorMessage.c_str());
+      return;
+    }
+
+    response.success = true;
+    response.message = successMessage;
+    RCLCPP_INFO(node_->get_logger(), "%s", successMessage.c_str());
   }
 
   void handleObservationMsg(const ocs2_msgs::msg::MpcObservation& msg) {
     std::lock_guard<std::mutex> lock(mutex_);
     latestObservation_ = ros_msg_conversions::readObservationMsg(msg);
     hasObservation_ = true;
+    cacheTaskStartPoseIfNeededUnlocked();
     updatePlannerStateUnlocked(latestObservation_.time);
   }
 
@@ -933,6 +1108,8 @@ class DualArmGraspWaypointPlanner final {
   double graspHoldSec_ = 2.0;
   double dtGraspToRetreat_ = 0.8;
   double dtRetreatToLift_ = 1.0;
+  double dtLiftToCarryUpright_ = 0.8;
+  double dtCarryUprightToHome_ = 1.0;
   bool enableTransportStage_ = false;
   bool enablePlaceStage_ = false;
   bool maintainRigidGraspAfterContact_ = true;
@@ -942,8 +1119,13 @@ class DualArmGraspWaypointPlanner final {
   double dtPrePlaceToPlace_ = 1.0;
   double dtPlaceToRelease_ = 0.5;
   double dtReleaseToPostReleaseRetreat_ = 1.0;
-  double dtPostReleaseRetreatToHome_ = 1.0;
+  double dtPostReleaseRetreatToInitial_ = 1.0;
   double trajectoryTimeScale_ = 1.0;
+  double carryHomeBoxX_ = 0.65;
+  double carryHomeBoxY_ = 0.0;
+  double carryHomeBoxZ_ = 1.20;
+  double carryHomeFrontClearance_ = 0.05;
+  double carryHomeTableClearance_ = 0.05;
   double prePlaceHeight_ = 0.10;
   double postReleaseRetreatDistance_ = 0.15;
   double postReleaseRetreatHeight_ = 0.05;
@@ -957,6 +1139,7 @@ class DualArmGraspWaypointPlanner final {
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr boxPoseSubscriber_;
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr placeBoxPoseSubscriber_;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr planService_;
+  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr continueReturnToInitialService_;
   rclcpp::Service<ocs2_msgs::srv::EvaluateBoxPose>::SharedPtr evaluateService_;
 
   std::mutex mutex_;
@@ -964,6 +1147,10 @@ class DualArmGraspWaypointPlanner final {
   double activeTrajectoryEndTime_ = -1.0;
   SystemObservation latestObservation_;
   bool hasObservation_ = false;
+  std::array<PoseData, 2> taskStartEndEffectorPoses_{};
+  bool hasTaskStartEndEffectorPoses_ = false;
+  std::array<PoseData, 2> postReleaseRetreatEndEffectorPoses_{};
+  bool hasPostReleaseRetreatEndEffectorPoses_ = false;
   geometry_msgs::msg::PoseStamped boxPoseMsg_;
   bool hasBoxPose_ = false;
   geometry_msgs::msg::PoseStamped placeBoxPoseMsg_;

@@ -192,7 +192,39 @@ def generate_launch_description():
         ),
         launch.actions.DeclareLaunchArgument(
             name='trajectory_time_scale',
+            default_value='0.7'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='dt_lift_to_carry_upright',
+            default_value='0.8'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='dt_carry_upright_to_home',
             default_value='1.0'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='dt_post_release_retreat_to_initial',
+            default_value='1.0'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='carry_home_box_x',
+            default_value='0.65'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='carry_home_box_y',
+            default_value='0.0'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='carry_home_box_z',
+            default_value='1.20'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='carry_home_front_clearance',
+            default_value='0.05'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='carry_home_table_clearance',
+            default_value='0.05'
         ),
         launch.actions.DeclareLaunchArgument(
             name='grasp_frame_roll',
@@ -328,6 +360,32 @@ def generate_launch_description():
                 },
                 {
                     'trajectory_time_scale': launch.substitutions.LaunchConfiguration('trajectory_time_scale')
+                },
+                {
+                    'dt_lift_to_carry_upright': launch.substitutions.LaunchConfiguration('dt_lift_to_carry_upright')
+                },
+                {
+                    'dt_carry_upright_to_home': launch.substitutions.LaunchConfiguration('dt_carry_upright_to_home')
+                },
+                {
+                    'dt_post_release_retreat_to_initial': launch.substitutions.LaunchConfiguration(
+                        'dt_post_release_retreat_to_initial'
+                    )
+                },
+                {
+                    'carry_home_box_x': launch.substitutions.LaunchConfiguration('carry_home_box_x')
+                },
+                {
+                    'carry_home_box_y': launch.substitutions.LaunchConfiguration('carry_home_box_y')
+                },
+                {
+                    'carry_home_box_z': launch.substitutions.LaunchConfiguration('carry_home_box_z')
+                },
+                {
+                    'carry_home_front_clearance': launch.substitutions.LaunchConfiguration('carry_home_front_clearance')
+                },
+                {
+                    'carry_home_table_clearance': launch.substitutions.LaunchConfiguration('carry_home_table_clearance')
                 },
                 {
                     'grasp_frame_rpy.roll': launch.substitutions.LaunchConfiguration('grasp_frame_roll')
