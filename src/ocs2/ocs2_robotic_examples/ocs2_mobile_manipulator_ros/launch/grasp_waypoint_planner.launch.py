@@ -91,23 +91,29 @@ def generate_launch_description():
         ),
         launch.actions.DeclareLaunchArgument(
             name='grasp_edge_inset_y',
-            default_value='0.0'
+            # Open both arms slightly beyond the box edges so the handboards
+            # approach from outside instead of colliding at the boundary.
+            default_value='-0.03'
         ),
         launch.actions.DeclareLaunchArgument(
             name='grasp_x_offset',
-            default_value='-0.065'
+            default_value='0.0'
         ),
         launch.actions.DeclareLaunchArgument(
             name='grasp_z_offset',
-            default_value='0.08'
+            default_value='-0.01'
         ),
         launch.actions.DeclareLaunchArgument(
             name='grasp_hold_sec',
             default_value='2.0'
         ),
         launch.actions.DeclareLaunchArgument(
+            name='lift_distance',
+            default_value='0.20'
+        ),
+        launch.actions.DeclareLaunchArgument(
             name='trajectory_time_scale',
-            default_value='1.0'
+            default_value='4.0'
         ),
         launch.actions.DeclareLaunchArgument(
             name='carry_home_after_grasp',
@@ -135,7 +141,7 @@ def generate_launch_description():
         ),
         launch.actions.DeclareLaunchArgument(
             name='carry_home_box_z',
-            default_value='1.00'
+            default_value='1.10'
         ),
         launch.actions.DeclareLaunchArgument(
             name='carry_home_front_clearance',
@@ -256,6 +262,9 @@ def generate_launch_description():
                 },
                 {
                     'grasp_hold_sec': launch.substitutions.LaunchConfiguration('grasp_hold_sec')
+                },
+                {
+                    'lift_distance': launch.substitutions.LaunchConfiguration('lift_distance')
                 },
                 {
                     'trajectory_time_scale': launch.substitutions.LaunchConfiguration('trajectory_time_scale')

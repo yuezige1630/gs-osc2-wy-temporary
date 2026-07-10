@@ -164,6 +164,12 @@ class MobileManipulatorHardwareMrtNode {
             node_->get_logger(), *node_->get_clock(), 5000,
             "[MobileManipulatorHardwareMRT] Command gated: %s. observation time %.6f is outside active policy [%.6f, %.6f].",
             queryTimeError.c_str(), observation.time, policyFront, policyBack);
+        if (shouldRefreshExpiredPolicy(pendingPolicyRequest_)) {
+          mrt_.setCurrentObservation(observation);
+          pendingPolicyObservationTime_ = observation.time;
+          pendingPolicyRequest_ = true;
+          pendingPolicyRequestAgeTicks_ = 0;
+        }
         rate.sleep();
         continue;
       }

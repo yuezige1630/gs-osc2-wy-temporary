@@ -170,6 +170,13 @@ if(BUILD_TESTING)
   )
   target_link_libraries(testPostReleaseInitialReturnHelpers Eigen3::Eigen)
 
+  ament_add_gtest(testGraspLiftPoseHelpers
+    test/testGraspLiftPoseHelpers.cpp
+  )
+  target_include_directories(testGraspLiftPoseHelpers PRIVATE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  )
+
   ament_add_gtest(testJointStateHardwareBridge
     test/testJointStateHardwareBridge.cpp
   )

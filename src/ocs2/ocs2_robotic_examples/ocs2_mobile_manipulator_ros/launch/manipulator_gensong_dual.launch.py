@@ -83,8 +83,11 @@ def generate_launch_description():
                 'targetEnabled': 'false',
                 'mrtExecutable': 'mobile_manipulator_hardware_mrt_node',
                 'observation_timeout_sec': '0.3',
-                'command_blend_alpha': '0.12',
-                'max_joint_delta_per_command': '0.02',
+                # The previous values made the hardware bridge lag far behind
+                # the MPC end-effector trajectory. Keep filtering enabled, but
+                # allow a useful tracking bandwidth for the waypoint planner.
+                'command_blend_alpha': '0.18',
+                'max_joint_delta_per_command': '0.04',
                 'joint_states_topic': '/gensong/joint_states',
             }.items()
         )

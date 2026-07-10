@@ -184,7 +184,7 @@ def generate_launch_description():
         ),
         launch.actions.DeclareLaunchArgument(
             name='grasp_z_offset',
-            default_value='0.0'
+            default_value='-0.01'
         ),
         launch.actions.DeclareLaunchArgument(
             name='grasp_hold_sec',

@@ -1,0 +1,2 @@
+ERROR mj_copyDataVisual (engine_io.c:1162) Fri Jul 10 14:55:32 2026: attempting to copy mjData while stack is in use
+

@@ -1,0 +1,351 @@
+<mujoco model="chasudipanjiqiren22">
+  <include file="./common/skybox.xml" />
+  <include file="./common/visual.xml" />
+  <include file="./common/materials.xml" />
+  <compiler angle="radian" meshdir="../meshes"/>
+
+  <!-- <option solver="Newton" iterations="100" ls_iterations="50" impratio="20"/> -->
+  <!-- 时间步长和积分器，防止底盘抖动 -->
+  <option timestep="0.002" integrator="implicitfast" />
+
+  <default>
+    <default class="collision_capsule">
+      <geom type="capsule" density="0" contype="2" conaffinity="1" group="5" rgba="0.2 0.8 0.2 0.15" />
+    </default>
+    <default class="collision_cylinder">
+      <geom type="cylinder" density="0" contype="2" conaffinity="1" group="5" rgba="0.2 0.8 0.2 0.15" />
+    </default>
+    <default class="collision_box">
+      <geom type="box" density="0" contype="2" conaffinity="1" group="5" rgba="0.2 0.8 0.2 0.15" />
+    </default>
+    <default class="visual_mesh">
+      <geom contype="0" conaffinity="0" group="1" />
+    </default>
+
+    <default class="motor_hub_8in_10nm">
+      <joint armature="0.00681686" damping="0.0100" frictionloss="0.09598" />
+    </default>
+
+    <default class="passive_wheel">
+      <joint armature="0.001" damping="0.001" frictionloss="0.001" />
+    </default>
+
+    <default class="motor_cra_ri100_120_pro_2_101_b_2e_ec">
+      <joint armature="4.44817" damping="30.0" frictionloss="11.2555" />
+    </default>
+
+    <default class="motor_cra_ri70_80_pro_2_101_2e_ec_b1">
+      <joint armature="0.52164" damping="8.0" frictionloss="4.036" />
+    </default>
+
+    <default class="motor_cra_ri80_97_pro_2_101_2e_ec_b1">
+      <joint armature="1.42947" damping="20.0" frictionloss="10.08" />
+    </default>
+
+    <default class="motor_cra_ri60_70_pro_2_101_2e_ec_b2">
+      <joint armature="0.379323" damping="6.0" frictionloss="2.81043" />
+    </default>
+
+    <default class="motor_cra_ri50_60_pro_2_81_2e_ec_b1">
+      <joint armature="0.08449156" damping="3.0" frictionloss="1.26126" />
+    </default>
+
+    <default class="hand_joint">
+      <joint armature="0.0005" damping="0.03" frictionloss="0.015" />
+    </default>
+
+    <default class="dexterous_hand_joint">
+      <joint armature="0.0001" damping="0.01" frictionloss="0.001" />
+    </default>
+
+    <!-- 任冠宇：54-60 轨迹点可视化 -->
+    <!-- <default class="trajectory_point">
+      <geom type="sphere" size="0.01" rgba="1 0 0 0.7" contype="0" conaffinity="0" />
+    </default>
+
+    <default class="eef_marker">
+      <geom type="sphere" size="0.02" contype="0" conaffinity="0" />
+    </default> -->
+  </default>
+
+  <asset>
+    <mesh name="base_link" file="base_link.STL"/>
+    <mesh name="wheel_drive_left_link" file="wheel_drive_left_link.STL"/>
+    <mesh name="wheel_drive_right_link" file="wheel_drive_right_link.STL"/>
+    <mesh name="wheel_driven_left_link" file="wheel_driven_left_link.STL"/>
+    <mesh name="wheel_driven_right_link" file="wheel_driven_right_link.STL"/>
+    <mesh name="leg_low_link" file="leg_low_link.STL"/>
+    <mesh name="leg_up_link" file="leg_up_link.STL"/>
+    <mesh name="waist_low_link" file="waist_low_link.STL"/>
+    <mesh name="waist_up_link" file="waist_up_link.STL"/>
+    <mesh name="chest_link" file="chest_link.STL"/>
+    <mesh name="arm1_left_link" file="arm1_left_link.STL"/>
+    <mesh name="arm2_left_link" file="arm2_left_link.STL"/>
+    <mesh name="arm3_left_link" file="arm3_left_link.STL"/>
+    <mesh name="arm4_left_link" file="arm4_left_link.STL"/>
+    <mesh name="wrist1_left_link" file="wrist1_left_link.STL"/>
+    <mesh name="wrist2_left_link" file="wrist2_left_link.STL"/>
+    <mesh name="wrist3_left_link" file="wrist3_left_link.STL"/>
+    <mesh name="camera_wrist_left_link" file="camera_wrist_left_link.STL"/>
+    <mesh name="arm1_right_link" file="arm1_right_link.STL"/>
+    <mesh name="arm2_right_link" file="arm2_right_link.STL"/>
+    <mesh name="arm3_right_link" file="arm3_right_link.STL"/>
+    <mesh name="arm4_right_link" file="arm4_right_link.STL"/>
+    <mesh name="wrist1_right_link" file="wrist1_right_link.STL"/>
+    <mesh name="wrist2_right_link" file="wrist2_right_link.STL"/>
+    <mesh name="wrist3_right_link" file="wrist3_right_link.STL"/>
+    <mesh name="camera_wrist_right_link" file="camera_wrist_right_link.STL"/>
+    <mesh name="camera_head_link" file="camera_head_link.STL"/>
+    <mesh name="hand_base_link" file="hand_base_link.STL"/>
+    <mesh name="handboard_left" file="handboard_left.STL"/>
+    <mesh name="hand_base_right_link" file="hand_base_right_link.STL"/>
+    <mesh name="handboard_right" file="handboard_right.STL"/>
+    <mesh name="thumb_metacarpals_right_base2" file="thumb_metacarpals_right_base2.STL"/>
+    <mesh name="scene_box" file="../mjcf/box-single.obj"/>
+    <mesh name="scene_table" file="../mjcf/table-2000x1000x750.obj"/>
+  </asset>
+
+  <equality>
+    <!-- 说明：mocap_weld 是一个虚拟的关节，用于将 mocap 节点与 chest_link 节点连接起来，无相对运动，全部锁定在初始位置 -->
+    <!-- <weld name="mocap_weld" body1="mocap" body2="chest_link" /> -->
+  </equality>
+
+  <actuator>
+    <motor name="motor_wheel_drive_left_joint" joint="wheel_drive_left_joint" ctrllimited="true" ctrlrange="-169 169" gear="1"/>
+    <motor name="motor_wheel_drive_right_joint" joint="wheel_drive_right_joint" ctrllimited="true" ctrlrange="-169 169" gear="1"/>
+
+    <motor name="motor_leg_low_joint" joint="leg_low_joint" ctrllimited="true" ctrlrange="-267 267" gear="1"/>
+    <motor name="motor_leg_up_joint" joint="leg_up_joint" ctrllimited="true" ctrlrange="-267 267" gear="1"/>
+    <motor name="motor_waist_low_joint" joint="waist_low_joint" ctrllimited="true" ctrlrange="-267 267" gear="1"/>
+    <motor name="motor_waist_up_joint" joint="waist_up_joint" ctrllimited="true" ctrlrange="-61 61" gear="1"/>
+    <motor name="motor_chest_joint" joint="chest_joint" ctrllimited="true" ctrlrange="-61 61" gear="1"/>
+
+    <motor name="motor_arm1_left_joint" joint="arm1_left_joint" ctrllimited="true" ctrlrange="-133 133" gear="1"/>
+    <motor name="motor_arm2_left_joint" joint="arm2_left_joint" ctrllimited="true" ctrlrange="-133 133" gear="1"/>
+    <motor name="motor_arm3_left_joint" joint="arm3_left_joint" ctrllimited="true" ctrlrange="-49 49" gear="1"/>
+    <motor name="motor_arm4_left_joint" joint="arm4_left_joint" ctrllimited="true" ctrlrange="-61 61" gear="1"/>
+    <motor name="motor_wrist1_left_joint" joint="wrist1_left_joint" ctrllimited="true" ctrlrange="-13.5 13.5" gear="1"/>
+    <motor name="motor_wrist2_left_joint" joint="wrist2_left_joint" ctrllimited="true" ctrlrange="-13.5 13.5" gear="1"/>
+    <motor name="motor_wrist3_left_joint" joint="wrist3_left_joint" ctrllimited="true" ctrlrange="-13.5 13.5" gear="1"/>
+
+    <motor name="motor_arm1_right_joint" joint="arm1_right_joint" ctrllimited="true" ctrlrange="-133 133" gear="1"/>
+    <motor name="motor_arm2_right_joint" joint="arm2_right_joint" ctrllimited="true" ctrlrange="-133 133" gear="1"/>
+    <motor name="motor_arm3_right_joint" joint="arm3_right_joint" ctrllimited="true" ctrlrange="-49 49" gear="1"/>
+    <motor name="motor_arm4_right_joint" joint="arm4_right_joint" ctrllimited="true" ctrlrange="-61 61" gear="1"/>
+    <motor name="motor_wrist1_right_joint" joint="wrist1_right_joint" ctrllimited="true" ctrlrange="-13.5 13.5" gear="1"/>
+    <motor name="motor_wrist2_right_joint" joint="wrist2_right_joint" ctrllimited="true" ctrlrange="-13.5 13.5" gear="1"/>
+    <motor name="motor_wrist3_right_joint" joint="wrist3_right_joint" ctrllimited="true" ctrlrange="-13.5 13.5" gear="1"/>
+  </actuator>
+
+  <sensor>
+    <framequat name="imu_quat" objtype="body" objname="base_link" />
+    <gyro name="imu_gyro" site="imu" />
+    <accelerometer name="imu_accel" site="imu" />
+  </sensor>
+
+  <worldbody>
+    <geom name="floor" size="0 0 0.01" type="plane" material="grid" contype="1" conaffinity="0" priority="1" friction="0.6" condim="3" />
+    <body name="mocap" mocap="true" pos="0 0 1.0">
+      <geom name="mocap_vis" type="sphere" size="0.08" rgba="0 1 0 1" contype="0" conaffinity="0" mass="0"/>
+    </body>
+    <body name="base_link" pos="0 0 0" gravcomp="1">
+      <inertial pos="-0.068329 -0.0001044 0.072859" mass="92.357" fullinertia="1.8837 4.2452 5.6691 -8.573E-05 0.10979 0.0074515" />
+      <!-- <freejoint name="base_joint"/> -->
+      <joint name="base_x" type="slide" axis="1 0 0" />
+      <joint name="base_y" type="slide" axis="0 1 0" />
+      <joint name="base_yaw" type="hinge" axis="0 0 1" />
+      <site name="imu" pos="0 0 0.1" size="0.01" />
+      <geom type="mesh" rgba="0.776471 0.756863 0.737255 1" mesh="base_link" class="visual_mesh" />
+      <body name="wheel_drive_left_link" pos="-0.225 0.2917 0.1">
+        <inertial pos="-4.93E-06 -0.050952 0" mass="1.2298" fullinertia="0.0043003 0.0074383 0.0043004 -4.1E-07 0 0" />
+        <joint class="motor_hub_8in_10nm" name="wheel_drive_left_joint" pos="0 0 0" axis="0 1 0" actuatorfrcrange="-10 10" />
+        <geom type="mesh" rgba="0.776471 0.756863 0.737255 1" mesh="wheel_drive_left_link" class="visual_mesh" />
+                              <geom name="wheel_drive_left_link_collision" type="cylinder" pos="0 0 0" quat="0.70710548 0.70710808 0 0" size="0.10 0.0345" contype="1" conaffinity="1" group="5" rgba="0 1 0 0.18"/>
+      </body>
+      <body name="wheel_drive_right_link" pos="-0.225 -0.2917 0.1">
+        <inertial pos="4.93E-06 0.050952 0" mass="1.2298"  fullinertia="0.0043003 0.0074383 0.0043004 -4.1E-07 0 0" />
+        <joint class="motor_hub_8in_10nm" name="wheel_drive_right_joint" pos="0 0 0" axis="0 1 0" actuatorfrcrange="-10 10" />
+        <geom type="mesh" rgba="0.776471 0.756863 0.737255 1" mesh="wheel_drive_right_link" class="visual_mesh" />
+                              <geom name="wheel_drive_right_link_collision" type="cylinder" pos="0 0 0" quat="0.70710548 0.70710808 0 0" size="0.10 0.0345" contype="1" conaffinity="1" group="5" rgba="0 1 0 0.18"/>
+      </body>
+      <body name="wheel_driven_left_link" pos="0.266 0.2565 0.075">
+        <inertial pos="0 0 3.26E-06" mass="0.51"  fullinertia="0.00081431 0.001449 0.00081424 0 0 0" />
+        <joint class="passive_wheel" name="wheel_driven_left_joint" pos="0 0 0" axis="0 1 0" />
+        <geom type="mesh" rgba="0.776471 0.756863 0.737255 1" mesh="wheel_driven_left_link" class="visual_mesh" />
+                              <geom name="wheel_driven_left_link_collision" type="cylinder" pos="0 0 0" quat="0.70710548 0.70710808 0 0" size="0.075 0.025" contype="1" conaffinity="1" group="5" rgba="0 1 0 0.18"/>
+      </body>
+      <body name="wheel_driven_right_link" pos="0.266 -0.2565 0.075">
+        <inertial pos="0 0 3.26E-06" mass="0.51"  fullinertia="0.00081431 0.001449 0.00081424 0 0 0" />
+        <joint class="passive_wheel" name="wheel_driven_right_joint" pos="0 0 0" axis="0 1 0" />
+        <geom type="mesh" rgba="0.776471 0.756863 0.737255 1" mesh="wheel_driven_right_link" class="visual_mesh" />
+                              <geom name="wheel_driven_right_link_collision" type="cylinder" pos="0 0 0" quat="0.70710548 0.70710808 0 0" size="0.075 0.025" contype="1" conaffinity="1" group="5" rgba="0 1 0 0.18"/>
+      </body>
+      <body name="leg_low_link" pos="0.188 0 0.129" euler="0 1.1429 0">
+        <inertial pos="-0.216883493233232 0.00795825336852886 0.0581166264620049" mass="16.5305117961297"  fullinertia="0.0456927805655381 0.16998164510068 0.145870769345791 2.89967041672681E-05 0.0290957358489561 -3.66957769966455E-07" />
+        <joint class="motor_cra_ri100_120_pro_2_101_b_2e_ec" name="leg_low_joint" pos="0 0 0" axis="0 -1 0" range="0 1.1429" actuatorfrcrange="-267 267" />
+        <geom type="mesh" rgba="0.776471 0.756863 0.737255 1" mesh="leg_low_link" class="visual_mesh" />
+                              <geom name="leg_low_link_collision" type="cylinder" pos="-0.20 0 0.05" quat="0.83387771 0 -0.55194924 0" size="0.08 0.15" contype="1" conaffinity="1" group="5" rgba="0 1 0 0.18"/>
+        <body name="leg_up_link" pos="-0.40034 0 0.1705" euler="0 -2.4871 0">
+          <inertial pos="0.185202350824797 -0.005827014951456 0.0144454009427329" mass="5.79713516409942"  fullinertia="0.00794845599673142 0.0853096175728224 0.0774558183904204 -1.20502205408508E-05 -0.011674300484542 1.0032773872274E-05" />
+          <joint class="motor_cra_ri100_120_pro_2_101_b_2e_ec" name="leg_up_joint" pos="0 0 0" axis="0 1 0" range="0 2.4871" actuatorfrcrange="-267 267" />
+          <geom type="mesh" rgba="0.776471 0.756863 0.737255 1" mesh="leg_up_link" class="visual_mesh" />
+                              <geom name="leg_up_link_collision" type="cylinder" pos="0.2 0 0.02" quat="0.78260925 0 0.62251326 0" size="0.08 0.125" contype="1" conaffinity="1" group="5" rgba="0 1 0 0.18"/>
+          <body name="waist_low_link" pos="0.36788 0 0.07353" euler="0 1.344 0">
+            <inertial pos="0.00355965767558206 0.0140912227494941 0.000333802506439662" mass="3.37968481795654"  fullinertia="0.0124660482998311 0.0140474872539088 0.0192945862156376 -2.22760449513195E-07 -2.32084403610267E-05 -1.62324847099825E-06" />
+            <joint class="motor_cra_ri100_120_pro_2_101_b_2e_ec" name="waist_low_joint" pos="0 0 0" axis="0 -1 0" range="-1.5707 1.344" actuatorfrcrange="-267 267" />
+            <geom type="mesh" rgba="0.776471 0.756863 0.737255 1" mesh="waist_low_link" class="visual_mesh" />
+            <body name="waist_up_link">
+              <inertial pos="-0.03388766 -3.718E-05 0.0805006" mass="2.97914359"  fullinertia="0.0186542 0.02990896 0.01447263 7.99E-06 -0.00823935 1.206E-05" />
+              <joint class="motor_cra_ri70_80_pro_2_101_2e_ec_b1" name="waist_up_joint" pos="0 0 0" axis="1 0 -0.00029476" range="-0.17453 0.17453" actuatorfrcrange="-61 61" />
+              <geom type="mesh" rgba="0.776471 0.756863 0.737255 1" mesh="waist_up_link" class="visual_mesh" />
+              <body name="chest_link" pos="6.0573E-05 0 0.2055">
+                <inertial pos="-0.00067665 0.00073282 0.1860538" mass="12.51428847"  fullinertia="0.15596357 0.10420102 0.08110605 -5.673E-05 0.00093242 0.0010599" />
+                <joint class="motor_cra_ri70_80_pro_2_101_2e_ec_b1" name="chest_joint" pos="0 0 0" axis="0.00029476 0 1" range="-2.618 2.618" actuatorfrcrange="-61 61" />
+                <geom type="mesh" rgba="0.776471 0.756863 0.737255 1" mesh="chest_link" class="visual_mesh" />
+                              <geom name="chest_link_collision" type="cylinder" pos="0 0 0.035" size="0.08 0.14" contype="1" conaffinity="1" group="5" rgba="0 1 0 0.18"/>
+                <body name="camera_head_link" pos="0.078342 0.00014174 0.45535">
+                  <inertial pos="-0.071684 -2.675E-05 -0.057635" mass="0.54512" fullinertia="0.0030918 0.0035052 0.0012614 -2.02E-06 -0.00012518 -3.75E-06" />
+                  <geom type="mesh" rgba="0.752941 0.752941 0.752941 1" mesh="camera_head_link" class="visual_mesh" density="0" />
+                              <geom name="camera_head_link_collision" type="sphere" pos="-0.05 0 0" size="0.10" contype="1" conaffinity="1" group="5" rgba="0 1 0 0.18"/>
+                  <camera name="gensong_rgb_camera" pos="0.25 0 0.1" xyaxes="0 -1 0 0.70710678 0 0.70710678" fovy="70"/>
+                  <camera name="gensong_depth_camera" pos="0.25 0 0.1" xyaxes="0 -1 0 0.70710678 0 0.70710678" fovy="70"/>
+                </body>
+                <body name="arm1_left_link" pos="6.2489E-05 0.1198 0.212">
+                  <inertial pos="-0.0084306 0.07665641 -0.00912431" mass="2.10687277" fullinertia="0.00415914 0.00311439 0.00417595 4.654E-05 -4.3E-07 0.00028392" />
+                  <joint class="motor_cra_ri80_97_pro_2_101_2e_ec_b1" name="arm1_left_joint" pos="0 0 0" axis="0 1 0" range="-3.1416 3.1416" actuatorfrcrange="-133 133" />
+                  <geom type="mesh" rgba="0.776471 0.756863 0.737255 1" mesh="arm1_left_link" class="visual_mesh" />
+                              <geom name="arm1_left_link_collision" type="sphere" pos="0 0.03 0" size="0.05" contype="1" conaffinity="1" group="5" rgba="0 1 0 0.18"/>
+                  <body name="arm2_left_link" pos="0 0.088 -0.012">
+                    <inertial pos="-0.00279311 0 -0.08976527" mass="1.12998896"  fullinertia="0.00307578 0.00294323 0.00101905 0 0.00023146 0" />
+                    <joint class="motor_cra_ri80_97_pro_2_101_2e_ec_b1" name="arm2_left_joint" pos="0 0 0" axis="1 0 -0.00029476" range="0 1.5708" actuatorfrcrange="-133 133" />
+                    <geom type="mesh" rgba="0.776471 0.756863 0.737255 1" mesh="arm2_left_link" class="visual_mesh" />
+                    <body name="arm3_left_link" pos="-4.0824E-05 0 -0.1385">
+                      <inertial pos="-0.00087518 0.00579601 -0.14283169" mass="1.3170296"  fullinertia="0.00374889 0.00384475 0.00112868 3.06E-06 5.712E-05 2.507E-05" />
+                      <joint class="motor_cra_ri60_70_pro_2_101_2e_ec_b2" name="arm3_left_joint" pos="0 0 0" axis="0.00029476 0 1" range="-3.1416 3.1416" actuatorfrcrange="-49 49" />
+                      <geom type="mesh" rgba="0.776471 0.756863 0.737255 1" mesh="arm3_left_link" class="visual_mesh" />
+                              <geom name="arm3_left_link_collision" type="cylinder" pos="0 0 0" size="0.03 0.075" contype="1" conaffinity="1" group="5" rgba="0 1 0 0.18"/>
+                      <body name="arm4_left_link" pos="-4.7604E-05 0 -0.1615">
+                        <inertial pos="0.07380172 0.00609791 -0.00796592" mass="0.80721186"  fullinertia="0.00075615 0.00179371 0.0019266 0.0003063 0.00011085 -3.865E-05" />
+                        <joint class="motor_cra_ri70_80_pro_2_101_2e_ec_b1" name="arm4_left_joint" pos="0 0 0" axis="0 -1 0" range="-1.5708 0.7854" actuatorfrcrange="-61 61" />
+                        <geom type="mesh" rgba="0.776471 0.756863 0.737255 1" mesh="arm4_left_link" class="visual_mesh" />
+                              <geom name="arm4_left_link_collision" type="cylinder" pos="0.1 0 0" quat="0.70710548 0 0.70710808 0" size="0.03 0.075" contype="1" conaffinity="1" group="5" rgba="0 1 0 0.18"/>
+                        <body name="wrist1_left_link" pos="0.1215 0 -0.010036">
+                          <inertial pos="0.02531393 0.02065991 0" mass="0.12777609" fullinertia="0.00010061 0.00010906 0.00012115 -2.964E-05 0 0" />
+                          <joint class="motor_cra_ri50_60_pro_2_81_2e_ec_b1" name="wrist1_left_joint" pos="0 0 0" axis="1 0 -0.00029476" range="-1.5708 1.5708" actuatorfrcrange="-13.5 13.5" />
+                          <geom type="mesh" rgba="0.1098 0.1098 0.1098 1" mesh="wrist1_left_link" class="visual_mesh" />
+                          <body name="wrist2_left_link" pos="0.0534 0.037 -1.574E-05">
+                            <inertial pos="0.0315 -0.0359209 0.0009291" mass="1.10448645" fullinertia="0.00064649 0.00168337 0.00168337 2.997E-05 -2.997E-05 9.5E-07" />
+                            <joint class="motor_cra_ri50_60_pro_2_81_2e_ec_b1" name="wrist2_left_joint" pos="0 0 0" axis="0 1 0" range="-1.5708 1.5708" actuatorfrcrange="-13.5 13.5" />
+                            <geom type="mesh" rgba="0.752941 0.752941 0.752941 1" mesh="wrist2_left_link" class="visual_mesh" />
+                            <body name="wrist3_left_link" pos="0.063012 -0.03685 0.039831">
+                              <inertial pos="0.0231709 0 -0.01675667" mass="0.09322241" fullinertia="5.467E-05 8.106E-05 7.186E-05 0 2.006E-05 0" />
+                              <joint class="motor_cra_ri50_60_pro_2_81_2e_ec_b1" name="wrist3_left_joint" pos="0 0 0" axis="0.00029476 0 1" range="-1.5708 1.5708" actuatorfrcrange="-13.5 13.5" />
+                              <geom type="mesh" rgba="0.866667 0.866667 0.890196 1" mesh="wrist3_left_link" class="visual_mesh" />
+                              <body name="camera_wrist_left_link" pos="0.020515 -0.001 0.051994">
+                                <inertial pos="-0.00425177 0.0006653 -0.00546166" mass="0.05993076" fullinertia="5.909E-05 4.78E-05 3.184E-05 2.6E-07 -1.275E-05 4E-07" />
+                                <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="camera_wrist_left_link" class="visual_mesh" density="0" />
+                              </body>
+
+                              <geom name="handboard_left" type="mesh" mesh="handboard_left" pos="0.1185 -0.0675 -0.04" rgba="1 1 1 1" class="visual_mesh"/>
+                              <geom name="handboard_left_collision" type="mesh" mesh="handboard_left" pos="0.1185 -0.0675 -0.04" contype="1" conaffinity="1" group="5" friction="2.0 0.1 0.01" condim="3" margin="0.005" rgba="0 1 0 0.18"/>
+                              
+                              
+                              
+                              
+                            </body>
+                          </body>
+                        </body>
+                      </body>
+                    </body>
+                  </body>
+                </body>
+                <body name="arm1_right_link" pos="6.2489E-05 -0.1198 0.212">
+                  <inertial pos="-0.0084306 -0.07665646 -0.00912431" mass="2.10687285"  fullinertia="0.00415915 0.00311439 0.00417595 -4.654E-05 -4.3E-07 -0.00028393" />
+                  <joint class="motor_cra_ri80_97_pro_2_101_2e_ec_b1" name="arm1_right_joint" pos="0 0 0" axis="0 -1 0" range="-3.1416 3.1416" actuatorfrcrange="-133 133" />
+                  <geom type="mesh" rgba="0.776471 0.756863 0.737255 1" mesh="arm1_right_link" class="visual_mesh" />
+                              <geom name="arm1_right_link_collision" type="sphere" pos="0 -0.03 0" size="0.05" contype="1" conaffinity="1" group="5" rgba="0 1 0 0.18"/>
+                  <body name="arm2_right_link" pos="0 -0.088 -0.012">
+                    <inertial pos="-0.00279311 0 -0.08976527" mass="1.12998896"  fullinertia="0.00307578 0.00294323 0.00101905 0 0.00023146 0" />
+                    <joint class="motor_cra_ri80_97_pro_2_101_2e_ec_b1" name="arm2_right_joint" pos="0 0 0" axis="1 0 -0.00029476" range="-1.5708 0" actuatorfrcrange="-133 133" />
+                    <geom type="mesh" rgba="0.776471 0.756863 0.737255 1" mesh="arm2_right_link" class="visual_mesh" />
+                    <body name="arm3_right_link" pos="-4.0824E-05 0 -0.1385">
+                      <inertial pos="-0.00087518 -0.005796 -0.14283168" mass="1.31702964"  fullinertia="0.00374889 0.00384475 0.00112868 -3.06E-06 5.712E-05 -2.507E-05" />
+                      <joint class="motor_cra_ri60_70_pro_2_101_2e_ec_b2" name="arm3_right_joint" pos="0 0 0" axis="0.00029476 0 1" range="-3.1416 3.1416" actuatorfrcrange="-49 49" />
+                      <geom type="mesh" rgba="0.776471 0.756863 0.737255 1" mesh="arm3_right_link" class="visual_mesh" />
+                              <geom name="arm3_right_link_collision" type="cylinder" pos="0 0 0" size="0.03 0.075" contype="1" conaffinity="1" group="5" rgba="0 1 0 0.18"/>
+                      <body name="arm4_right_link" pos="-4.7604E-05 0 -0.1615">
+                        <inertial pos="0.07380172 -0.00609791 -0.00796592" mass="0.80721187"  fullinertia="0.00075615 0.00179371 0.0019266 -0.00030629 0.00011085 3.865E-05" />
+                        <joint class="motor_cra_ri70_80_pro_2_101_2e_ec_b1" name="arm4_right_joint" pos="0 0 0" axis="0 1 0" range="-0.7854 1.5708" actuatorfrcrange="-61 61" />
+                        <geom type="mesh" rgba="0.776471 0.756863 0.737255 1" mesh="arm4_right_link" class="visual_mesh" />
+                              <geom name="arm4_right_link_collision" type="cylinder" pos="0.1 0 0" quat="0.70710548 0 0.70710808 0" size="0.03 0.075" contype="1" conaffinity="1" group="5" rgba="0 1 0 0.18"/>
+                        <body name="wrist1_right_link" pos="0.1215 0 -0.010036">
+                          <inertial pos="0.02531393 -0.02065991 0" mass="0.12777609" fullinertia="0.00010061 0.00010906 0.00012115 2.964E-05 0 0" />
+                          <joint class="motor_cra_ri50_60_pro_2_81_2e_ec_b1" name="wrist1_right_joint" pos="0 0 0" axis="1 0 -0.00029476" range="-1.5708 1.5708" actuatorfrcrange="-13.5 13.5" />
+                          <geom type="mesh" rgba="0.109804 0.109804 0.109804 1" mesh="wrist1_right_link" class="visual_mesh" />
+                          <body name="wrist2_right_link" pos="0.0534 -0.037 -1.574E-05">
+                            <inertial pos="0.0315 0.0359209 0.0009291" mass="1.10448646" fullinertia="0.00064649 0.00168337 0.00168337 -2.997E-05 -2.997E-05 -9.5E-07" />
+                            <joint class="motor_cra_ri50_60_pro_2_81_2e_ec_b1" name="wrist2_right_joint" pos="0 0 0" axis="0 -1 0" range="-1.5708 1.5708" actuatorfrcrange="-13.5 13.5" />
+                            <geom type="mesh" rgba="0.752941 0.752941 0.752941 1" mesh="wrist2_right_link" class="visual_mesh" />
+                            <body name="wrist3_right_link" pos="0.063012 0.03685 0.039831">
+                              <inertial pos="0.0231709 0 -0.01675667" mass="0.09322241" fullinertia="5.467E-05 8.106E-05 7.186E-05 0 2.006E-05 0" />
+                              <joint class="motor_cra_ri50_60_pro_2_81_2e_ec_b1" name="wrist3_right_joint" pos="0 0 0" axis="0.00029476 0 1" range="-1.5708 1.5708" actuatorfrcrange="-13.5 13.5" />
+                              <geom type="mesh" rgba="0.866667 0.866667 0.890196 1" mesh="wrist3_right_link" class="visual_mesh" />
+                              <body name="camera_wrist_right_link" pos="0.020515 -0.001 0.051994">
+                                <inertial pos="-0.00425177 0.0006653 -0.00546166" mass="0.05993076" fullinertia="5.909E-05 4.78E-05 3.184E-05 2.6E-07 -1.275E-05 4E-07" />
+                                <geom type="mesh" rgba="0.752941 0.752941 0.752941 1" mesh="camera_wrist_right_link" class="visual_mesh" density="0" />
+                              </body>
+
+                              <geom name="handboard_right" type="mesh" mesh="handboard_right" pos="0.1185 0.0675 -0.04" rgba="1 0.6 0 1" class="visual_mesh"/>
+                              <geom name="handboard_right_collision" type="mesh" mesh="handboard_right" pos="0.1185 0.0675 -0.04" contype="1" conaffinity="1" group="5" friction="2.0 0.1 0.01" condim="3" margin="0.005" rgba="0 1 0 0.18"/>
+                              
+                              
+                              
+                              
+                            </body>
+                          </body>
+                        </body>
+                      </body>
+                    </body>
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+
+    <!-- 任冠宇 249-270 后加的 轨迹体 -->
+    <!-- <body name="trajectory_body" pos="0 0 0">
+      <geom class="trajectory_point" name="traj_point_0" pos="0 0 0" rgba="1 0 0 0.3"/>
+      <geom class="trajectory_point" name="traj_point_1" pos="0 0 0" rgba="1 0.2 0 0.3"/>
+      <geom class="trajectory_point" name="traj_point_2" pos="0 0 0" rgba="1 0.4 0 0.3"/>
+      <geom class="trajectory_point" name="traj_point_3" pos="0 0 0" rgba="1 0.6 0 0.3"/>
+      <geom class="trajectory_point" name="traj_point_4" pos="0 0 0" rgba="1 0.8 0 0.3"/>
+      <geom class="trajectory_point" name="traj_point_5" pos="0 0 0" rgba="1 1 0 0.3"/>
+      <geom class="trajectory_point" name="traj_point_6" pos="0 0 0" rgba="0.8 1 0 0.3"/>
+      <geom class="trajectory_point" name="traj_point_7" pos="0 0 0" rgba="0.6 1 0 0.3"/>
+      <geom class="trajectory_point" name="traj_point_8" pos="0 0 0" rgba="0.4 1 0 0.3"/>
+      <geom class="trajectory_point" name="traj_point_9" pos="0 0 0" rgba="0.2 1 0 0.3"/>
+      <geom class="trajectory_point" name="traj_point_10" pos="0 0 0" rgba="0 0.2 1 0.3"/>
+      <geom class="trajectory_point" name="traj_point_11" pos="0 0 0" rgba="0 0.4 1 0.3"/>
+      <geom class="trajectory_point" name="traj_point_12" pos="0 0 0" rgba="0 0.6 1 0.3"/>
+      <geom class="trajectory_point" name="traj_point_13" pos="0 0 0" rgba="0 0.8 1 0.3"/>
+      <geom class="trajectory_point" name="traj_point_14" pos="0 0 0" rgba="0 1 1 0.3"/>
+      <geom class="trajectory_point" name="traj_point_15" pos="0 0 0" rgba="0 1 0.8 0.3"/>
+      <geom class="trajectory_point" name="traj_point_16" pos="0 0 0" rgba="0 1 0.6 0.3"/>
+      <geom class="trajectory_point" name="traj_point_17" pos="0 0 0" rgba="0 1 0.4 0.3"/>
+      <geom class="trajectory_point" name="traj_point_18" pos="0 0 0" rgba="0 1 0.2 0.3"/>
+      <geom class="trajectory_point" name="traj_point_19" pos="0 0 0" rgba="0 0.8 1 0.3"/>
+    </body> -->
+      <body name="scene_box" pos="1.0 0 0.81" euler="1.5708 0 0">
+        <freejoint name="scene_box_freejoint"/>
+        <geom name="scene_box_visual" type="mesh" mesh="scene_box" rgba="0.08 0.25 0.85 1" contype="0" conaffinity="0" mass="0"/>
+        <geom name="scene_box_collision" type="mesh" mesh="scene_box" contype="1" conaffinity="1" mass="3.0" friction="2.0 0.1 0.01" condim="3" margin="0.005" solref="0.01 1" solimp="0.95 0.99 0.001" rgba="0 1 0 0.18"/>
+      </body>
+      <body name="scene_table" pos="1.5 -1.0 0" euler="0 1.5708 1.5708">
+        <geom name="scene_table_visual" type="mesh" mesh="scene_table" rgba="0.35 0.20 0.10 1" contype="0" conaffinity="0" mass="0"/>
+        <geom name="scene_table_collision" type="mesh" mesh="scene_table" contype="1" conaffinity="1" mass="50" rgba="1 0.55 0 0.12"/>
+      </body>
+  </worldbody>
+</mujoco>

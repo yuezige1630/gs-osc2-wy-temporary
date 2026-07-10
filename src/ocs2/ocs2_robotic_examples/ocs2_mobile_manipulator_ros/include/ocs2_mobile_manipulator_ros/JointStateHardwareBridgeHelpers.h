@@ -207,6 +207,10 @@ inline bool shouldRetryPendingPolicyRequest(size_t pendingPolicyAgeTicks, size_t
   return pendingPolicyAgeTicks >= std::max<size_t>(2u * mpcUpdateRatio, 2u);
 }
 
+// An expired policy cannot produce a command. Request a replacement as soon
+// as possible unless an observation is already awaiting a policy update.
+inline bool shouldRefreshExpiredPolicy(bool hasPendingPolicyRequest) { return !hasPendingPolicyRequest; }
+
 inline bool shouldPublishCommandForObservationTime(double observationTime, const std::optional<double>& lastPublishedObservationTime) {
   if (!std::isfinite(observationTime)) {
     throw std::invalid_argument("[JointStateHardwareBridgeHelpers] observationTime must be finite.");

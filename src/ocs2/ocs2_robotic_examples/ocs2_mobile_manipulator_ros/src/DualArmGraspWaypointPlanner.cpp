@@ -29,6 +29,7 @@ Copyright (c) 2026.
 #include <ocs2_mobile_manipulator/FactoryFunctions.h>
 #include <ocs2_mobile_manipulator/MobileManipulatorPinocchioMapping.h>
 #include <ocs2_mobile_manipulator_ros/CarryHomePoseHelpers.h>
+#include <ocs2_mobile_manipulator_ros/GraspLiftPoseHelpers.h>
 #include <ocs2_mobile_manipulator_ros/PostReleaseInitialReturnHelpers.h>
 #include <ocs2_msgs/srv/evaluate_box_pose.hpp>
 #include <ocs2_ros_interfaces/command/TargetTrajectoriesRosPublisher.h>
@@ -66,7 +67,7 @@ class DualArmGraspWaypointPlanner final {
     boxSizeZ_ = node_->declare_parameter<double>("box_size_z", 0.1464);
     graspEdgeInsetY_ = node_->declare_parameter<double>("grasp_edge_inset_y", 0.0);
     graspXOffset_ = node_->declare_parameter<double>("grasp_x_offset", 0.0);
-    graspZOffset_ = node_->declare_parameter<double>("grasp_z_offset", 0.0);
+    graspZOffset_ = node_->declare_parameter<double>("grasp_z_offset", -0.01);
     graspFrameOrientation_ = rpyToQuaternion(node_->declare_parameter<double>("grasp_frame_rpy.roll", 0.0),
                                              node_->declare_parameter<double>("grasp_frame_rpy.pitch", 0.0),
                                              node_->declare_parameter<double>("grasp_frame_rpy.yaw", 0.0));
@@ -163,8 +164,7 @@ class DualArmGraspWaypointPlanner final {
     }
     if (!carryHomeAfterGrasp_) {
       RCLCPP_INFO(node_->get_logger(),
-                  "carry_home_after_grasp=false: box_pose trajectories will stop at the box grasp pose instead of "
-                  "retreating, lifting, and carrying home.");
+                  "carry_home_after_grasp=false: box_pose trajectories will not append upright/home waypoints.");
     }
     if (dryRunMode_) {
       RCLCPP_INFO(node_->get_logger(),
@@ -379,8 +379,8 @@ class DualArmGraspWaypointPlanner final {
     }
 
     const std::array<Eigen::Vector3d, 2> localOffsets{
-        Eigen::Vector3d(graspXOffset_, graspEdgeOffsetY_, 0.01 + graspZOffset_),
-        Eigen::Vector3d(graspXOffset_, -graspEdgeOffsetY_, 0.01 + graspZOffset_),
+        Eigen::Vector3d(graspXOffset_, graspEdgeOffsetY_, contactGraspLocalZ(graspZOffset_)),
+        Eigen::Vector3d(graspXOffset_, -graspEdgeOffsetY_, contactGraspLocalZ(graspZOffset_)),
     };
 
     for (size_t armIndex = 0; armIndex < 2; ++armIndex) {
@@ -578,8 +578,12 @@ class DualArmGraspWaypointPlanner final {
     PoseData carryUprightBoxPose = snapshot.boxPose;
     PoseData carryHomeBoxPose = snapshot.boxPose;
 
+    PoseData liftBoxPose = snapshot.boxPose;
+    liftBoxPose.position.z() =
+        computeLiftBoxCenterZ(snapshot.boxPose.position.z(), liftDistance_, minBoxClearance_, minTableClearance_);
+    holdBoxPose = liftBoxPose;
+
     if (carryHomeAfterGrasp_) {
-      holdBoxPose.position.z() = std::max(snapshot.boxPose.position.z() + liftDistance_, clearanceBaseZ);
       carryUprightBoxPose = holdBoxPose;
       carryUprightBoxPose.orientation = baseLinkAlignedBoxOrientation();
       carryHomeBoxPose.position = Eigen::Vector3d(carryHomeBoxX_, carryHomeBoxY_, carryHomeBoxZ_);
@@ -621,30 +625,53 @@ class DualArmGraspWaypointPlanner final {
       via.position.z() = std::max({currentPoses[armIndex].position.z(), preGrasp.position.z(), clearanceBaseZ}) + viaExtraHeight_;
 
       PoseData hold = graspPose;
-      PoseData retreat = graspPose;
-      PoseData lift = composeEndEffectorPose(holdBoxPose, armIndex, carrySession);
+      PoseData lift;
 
-      const Eigen::Vector3d translationInBoxFrame =
-          inverseBoxOrientation * (graspPose.position - snapshot.boxPose.position);
+      // Use the original local offsets as the translation in box frame.
+      // This avoids the x-alignment hack corrupting the y/z components when the box is rotated,
+      // which would cause lateral movement (and hand flipping) during the lift.
+      const Eigen::Vector3d translationInBoxFrame(
+          graspXOffset_, armIndex == 0 ? graspEdgeOffsetY_ : -graspEdgeOffsetY_, contactGraspLocalZ(graspZOffset_));
       Eigen::Quaterniond orientationInBoxFrame = inverseBoxOrientation * graspPose.orientation;
       orientationInBoxFrame.normalize();
 
       carrySession.eeTranslationsInBoxFrame[armIndex] = translationInBoxFrame;
       carrySession.eeOrientationsInBoxFrame[armIndex] = orientationInBoxFrame;
-      lift = composeEndEffectorPose(holdBoxPose, armIndex, carrySession);
+
+      // Lift: same x/y/orientation as grasp, only z increases (pure vertical motion).
+      lift = graspPose;
+      lift.position.z() = holdBoxPose.position.z() + contactGraspLocalZ(graspZOffset_);
+
+      // Break the lift phase into multiple sub-steps so MPC tracks small increments.
+      const int numLiftSubSteps = 3;
+      std::vector<PoseData> liftSubSteps(numLiftSubSteps);
+      for (int s = 0; s < numLiftSubSteps; ++s) {
+        const double frac = static_cast<double>(s + 1) / static_cast<double>(numLiftSubSteps + 1);
+        liftSubSteps[s] = graspPose;
+        liftSubSteps[s].position.z() =
+            graspPose.position.z() + frac * (lift.position.z() - graspPose.position.z());
+      }
+
+      RCLCPP_INFO(node_->get_logger(),
+                  "Arm %zu: grasp=[%.3f, %.3f, %.3f] hold=[%.3f, %.3f, %.3f] lift=[%.3f, %.3f, %.3f]",
+                  armIndex,
+                  graspPose.position.x(), graspPose.position.y(), graspPose.position.z(),
+                  hold.position.x(), hold.position.y(), hold.position.z(),
+                  lift.position.x(), lift.position.y(), lift.position.z());
 
       if (carryHomeAfterGrasp_) {
         const PoseData carryUpright = composeEndEffectorPose(carrySession.carryUprightBoxPose, armIndex, carrySession);
         const PoseData carryHome = composeEndEffectorPose(carryHomeBoxPose, armIndex, carrySession);
-        armWaypoints[armIndex] = {currentPoses[armIndex], via, preGrasp, graspPose, hold, retreat, lift, carryUpright,
-                                  carryHome};
+        armWaypoints[armIndex] = {currentPoses[armIndex], via, preGrasp, graspPose, hold,
+                                  liftSubSteps[0], liftSubSteps[1], liftSubSteps[2],
+                                  lift, carryUpright, carryHome};
       } else {
-        armWaypoints[armIndex] = {currentPoses[armIndex], via, preGrasp, graspPose, hold};
+        armWaypoints[armIndex] = {currentPoses[armIndex], via, preGrasp, graspPose, hold,
+                                  liftSubSteps[0], liftSubSteps[1], liftSubSteps[2], lift};
       }
 
-      if (via.position.z() < clearanceBaseZ - 1e-9 || (carryHomeAfterGrasp_ && lift.position.z() < clearanceBaseZ - 1e-9)) {
-        errorMessage = carryHomeAfterGrasp_ ? "Generated via/lift waypoint violates box or table clearance."
-                                            : "Generated via waypoint violates box or table clearance.";
+      if (via.position.z() < clearanceBaseZ - 1e-9 || lift.position.z() < clearanceBaseZ - 1e-9) {
+        errorMessage = "Generated via/lift waypoint violates box or table clearance.";
         return false;
       }
     }
@@ -653,27 +680,33 @@ class DualArmGraspWaypointPlanner final {
       return false;
     }
 
+    const double contactTime = dtCurrentToVia_ + dtViaToPregrasp_ + dtPregraspToGrasp_;
+    const double holdEndTime = contactTime + graspHoldSec_;
+    const double liftEndTime = holdEndTime + dtRetreatToLift_;
+    const int numLiftSubSteps = 3;
+    const double liftStepDuration = dtRetreatToLift_ / static_cast<double>(numLiftSubSteps + 1);
     if (carryHomeAfterGrasp_) {
       timeOffsets = {0.0,
                      scaledTime(dtCurrentToVia_),
                      scaledTime(dtCurrentToVia_ + dtViaToPregrasp_),
-                     scaledTime(dtCurrentToVia_ + dtViaToPregrasp_ + dtPregraspToGrasp_),
-                     scaledTime(dtCurrentToVia_ + dtViaToPregrasp_ + dtPregraspToGrasp_ + graspHoldSec_),
-                     scaledTime(dtCurrentToVia_ + dtViaToPregrasp_ + dtPregraspToGrasp_ + graspHoldSec_ +
-                                dtGraspToRetreat_),
-                     scaledTime(dtCurrentToVia_ + dtViaToPregrasp_ + dtPregraspToGrasp_ + graspHoldSec_ +
-                                dtGraspToRetreat_ + dtRetreatToLift_),
-                     scaledTime(dtCurrentToVia_ + dtViaToPregrasp_ + dtPregraspToGrasp_ + graspHoldSec_ +
-                                dtGraspToRetreat_ + dtRetreatToLift_ + dtLiftToCarryUpright_),
-                     scaledTime(dtCurrentToVia_ + dtViaToPregrasp_ + dtPregraspToGrasp_ + graspHoldSec_ +
-                                dtGraspToRetreat_ + dtRetreatToLift_ + dtLiftToCarryUpright_ +
-                                dtCarryUprightToHome_)};
+                     scaledTime(contactTime),
+                     scaledTime(holdEndTime),
+                     scaledTime(holdEndTime + liftStepDuration),
+                     scaledTime(holdEndTime + 2.0 * liftStepDuration),
+                     scaledTime(holdEndTime + 3.0 * liftStepDuration),
+                     scaledTime(liftEndTime),
+                     scaledTime(liftEndTime + dtLiftToCarryUpright_),
+                     scaledTime(liftEndTime + dtLiftToCarryUpright_ + dtCarryUprightToHome_)};
     } else {
       timeOffsets = {0.0,
                      scaledTime(dtCurrentToVia_),
                      scaledTime(dtCurrentToVia_ + dtViaToPregrasp_),
-                     scaledTime(dtCurrentToVia_ + dtViaToPregrasp_ + dtPregraspToGrasp_),
-                     scaledTime(dtCurrentToVia_ + dtViaToPregrasp_ + dtPregraspToGrasp_ + graspHoldSec_)};
+                     scaledTime(contactTime),
+                     scaledTime(holdEndTime),
+                     scaledTime(holdEndTime + liftStepDuration),
+                     scaledTime(holdEndTime + 2.0 * liftStepDuration),
+                     scaledTime(holdEndTime + 3.0 * liftStepDuration),
+                     scaledTime(liftEndTime)};
     }
     return true;
   }
@@ -823,6 +856,10 @@ class DualArmGraspWaypointPlanner final {
       activeTrajectoryEndTime_ = targetTrajectories.timeTrajectory.back();
       hasPlaceBoxPose_ = false;
       hasPostReleaseRetreatEndEffectorPoses_ = false;
+      RCLCPP_INFO(node_->get_logger(),
+                  "Published grasp target: start=%.6f end=%.6f duration=%.3f s.",
+                  targetTrajectories.timeTrajectory.front(), targetTrajectories.timeTrajectory.back(),
+                  targetTrajectories.timeTrajectory.back() - targetTrajectories.timeTrajectory.front());
     }
 
     successMessage = formatGraspSuccessMessage("Published grasp-hold trajectory from", triggerSource, snapshot,
@@ -994,6 +1031,16 @@ class DualArmGraspWaypointPlanner final {
                              msg.pose.position.z);
         return;
       }
+      // Allow retrying after the timed grasp trajectory finished. Otherwise a
+      // failed tracking attempt leaves the planner in HOLDING_OBJECT and all
+      // subsequent box_pose messages are discarded with the old target time.
+      if (plannerState_ == PlannerState::HOLDING_OBJECT) {
+        RCLCPP_WARN(node_->get_logger(),
+                    "Replanning grasp from the latest observation after the previous grasp trajectory finished.");
+        clearCarrySessionUnlocked();
+        plannerState_ = PlannerState::IDLE;
+        activeTrajectoryEndTime_ = -1.0;
+      }
       if (plannerState_ != PlannerState::IDLE) {
         warnIgnoredTrigger("box_pose", PlannerState::IDLE);
         return;
@@ -1116,7 +1163,7 @@ class DualArmGraspWaypointPlanner final {
   double graspEdgeInsetY_ = 0.0;
   double graspEdgeOffsetY_ = 0.0;
   double graspXOffset_ = 0.0;
-  double graspZOffset_ = 0.0;
+  double graspZOffset_ = -0.01;
   Eigen::Quaterniond graspFrameOrientation_ = Eigen::Quaterniond::Identity();
   std::array<Eigen::Quaterniond, 2> wristOrientationCompensations_{
       {Eigen::Quaterniond::Identity(), Eigen::Quaterniond::Identity()}};

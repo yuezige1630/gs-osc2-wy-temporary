@@ -77,7 +77,7 @@ ddp
 
   preComputeRiccatiTerms          true
 
-  useFeedbackPolicy               false
+  useFeedbackPolicy               true
 
   strategy                        LINE_SEARCH
   lineSearch
@@ -103,14 +103,14 @@ rollout
 ; MPC settings
 mpc
 {
-  timeHorizon                     1.0   ; [s]
-  solutionTimeWindow              1.0   ; [s]
+  timeHorizon                     4.0   ; [s]
+  solutionTimeWindow              -1    ; maximum [s], keep policy coverage alive during tracking
   coldStart                       false
 
   debugPrint                      false
 
-  mpcDesiredFrequency             5     ; [Hz]
-  mrtDesiredFrequency             20    ; [Hz]
+  mpcDesiredFrequency             10    ; [Hz] policy refresh for waypoint tracking
+  mrtDesiredFrequency             50    ; [Hz] smooth command execution from 500 Hz state input
 }
 
 ; initial state
@@ -234,14 +234,14 @@ inputCost
 
 endEffector
 {
-  muPosition      10.0
-  muOrientation    5.0
+  muPosition      30.0
+  muOrientation    30.0
 }
 
 finalEndEffector
 {
-  muPosition      10.0
-  muOrientation    5.0
+  muPosition      50.0
+  muOrientation    40.0
 }
 
 selfCollision

@@ -97,6 +97,10 @@ TEST(JointStateHardwareBridgeHelpers, RejectsQueryTimeTooFarBeyondPolicyBoundary
   EXPECT_NE(error.find("outside active policy"), std::string::npos);
 }
 
+TEST(JointStateHardwareBridgeHelpers, RefreshesExpiredPolicyWhenNoRequestIsPending) {
+  EXPECT_TRUE(shouldRefreshExpiredPolicy(false));
+}
+
 TEST(JointStateHardwareBridgeHelpers, DetectsPolicySynchronizedToObservationTime) {
   EXPECT_TRUE(isPolicySynchronizedForObservationTime(10.0008, 10.0000, 100.0));
   EXPECT_FALSE(isPolicySynchronizedForObservationTime(10.0200, 10.0000, 100.0));
