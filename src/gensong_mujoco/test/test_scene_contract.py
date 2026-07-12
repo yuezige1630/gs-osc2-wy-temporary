@@ -34,6 +34,15 @@ class SceneContractTest(unittest.TestCase):
         self.assertIn("32FC1", source)
         self.assertIn('os.environ.setdefault("MUJOCO_GL", "egl")', source)
 
+    def test_joint_states_are_decoupled_from_camera_rendering(self):
+        source = NODE.read_text()
+        self.assertIn('self.declare_parameter("joint_state_publish_hz", 500.0)', source)
+        self.assertIn('self.publish_state()', source)
+        self.assertNotIn('self.state_timer = self.create_timer(', source)
+        self.assertIn('self.camera_thread = threading.Thread(', source)
+        self.assertIn('mujoco.mj_copyData(', source)
+        self.assertNotIn('joint_state_publish_interval', source)
+
 
 if __name__ == "__main__":
     unittest.main()

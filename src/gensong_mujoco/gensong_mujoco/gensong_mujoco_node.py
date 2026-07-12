@@ -58,6 +58,7 @@ class GensongMujoco(Node):
         self.declare_parameter("wrist_position_gain", 900.0)
         self.declare_parameter("wrist_velocity_gain", 90.0)
         self.declare_parameter("torque_limit", 260.0)
+        self.declare_parameter("joint_state_publish_hz", 500.0)
 
         self.model = mujoco.MjModel.from_xml_path(self.get_parameter("model_path").value)
         self.data = mujoco.MjData(self.model)
@@ -95,10 +96,10 @@ class GensongMujoco(Node):
         self.create_subscription(JointState, "/gensong/joint_command", self.on_joint_command, 10)
         self.create_subscription(Twist, "/cmd_vel", self.on_cmd_vel, 10)
 
-        self.renderer = None
-        self.last_camera = 0.0
         self.sim_thread = threading.Thread(target=self.simulation_loop, daemon=True)
+        self.camera_thread = threading.Thread(target=self.camera_loop, daemon=True)
         self.sim_thread.start()
+        self.camera_thread.start()
 
     def on_joint_command(self, msg):
         with self.lock:
@@ -115,15 +116,12 @@ class GensongMujoco(Node):
             self.base_command[:] = (msg.linear.x, msg.linear.y, msg.angular.z)
 
     def simulation_loop(self):
-        # EGL contexts are thread-affine. Create and destroy the renderer in
-        # this same thread because camera rendering happens here.
-        self.renderer = mujoco.Renderer(
-            self.model,
-            height=int(self.get_parameter("camera_height").value),
-            width=int(self.get_parameter("camera_width").value),
-        )
-        period = 1.0 / float(self.get_parameter("simulation_hz").value)
+        simulation_hz = float(self.get_parameter("simulation_hz").value)
+        state_hz = float(self.get_parameter("joint_state_publish_hz").value)
+        state_interval = max(1, round(simulation_hz / state_hz))
+        period = 1.0 / simulation_hz
         next_tick = time.monotonic()
+        step_count = 0
         while self.running and rclpy.ok():
             with self.lock:
                 for name, addr in self.qpos_addr.items():
@@ -155,16 +153,41 @@ class GensongMujoco(Node):
                 self.data.qvel[self.base_qvel["y"]] = self.base_command[1]
                 self.data.qvel[self.base_qvel["yaw"]] = self.base_command[2]
                 mujoco.mj_step(self.model, self.data)
-            self.publish_state()
-            now = time.monotonic()
-            if now - self.last_camera >= 1.0 / float(self.get_parameter("camera_hz").value):
-                self.publish_camera()
-                self.last_camera = now
+            step_count += 1
+            if step_count % state_interval == 0:
+                self.publish_state()
             next_tick += period
             time.sleep(max(0.0, next_tick - time.monotonic()))
-        if self.renderer is not None:
-            self.renderer.close()
-            self.renderer = None
+
+    def camera_loop(self):
+        # Rendering has its own EGL context and a private MjData snapshot, so
+        # expensive RGB-D rendering cannot stop the 500 Hz simulation/state
+        # paths. The short copy under the lock keeps the live simulation data
+        # protected while rendering happens outside the lock.
+        renderer = mujoco.Renderer(
+            self.model,
+            height=int(self.get_parameter("camera_height").value),
+            width=int(self.get_parameter("camera_width").value),
+        )
+        camera_data = mujoco.MjData(self.model)
+        period = 1.0 / float(self.get_parameter("camera_hz").value)
+        next_tick = time.monotonic()
+        try:
+            while self.running and rclpy.ok():
+                with self.lock:
+                    mujoco.mj_copyData(camera_data, self.model, self.data)
+                try:
+                    self.publish_camera(renderer, camera_data)
+                except Exception:
+                    # ROS may invalidate publishers before this worker sees
+                    # the shutdown flag. Exit quietly during normal teardown.
+                    if not rclpy.ok():
+                        break
+                    raise
+                next_tick += period
+                time.sleep(max(0.0, next_tick - time.monotonic()))
+        finally:
+            renderer.close()
 
     def publish_state(self):
         if not rclpy.ok():
@@ -178,14 +201,13 @@ class GensongMujoco(Node):
         if rclpy.ok():
             self.state_pub.publish(msg)
 
-    def publish_camera(self):
-        with self.lock:
-            self.renderer.update_scene(self.data, camera="gensong_rgb_camera")
-            rgb = self.renderer.render()
-            self.renderer.enable_depth_rendering()
-            self.renderer.update_scene(self.data, camera="gensong_depth_camera")
-            depth = self.renderer.render().astype(np.float32)
-            self.renderer.disable_depth_rendering()
+    def publish_camera(self, renderer, data):
+        renderer.update_scene(data, camera="gensong_rgb_camera")
+        rgb = renderer.render()
+        renderer.enable_depth_rendering()
+        renderer.update_scene(data, camera="gensong_depth_camera")
+        depth = renderer.render().astype(np.float32)
+        renderer.disable_depth_rendering()
         stamp = self.get_clock().now().to_msg()
         self.color_pub.publish(self.image_message(rgb, "rgb8", stamp))
         self.depth_pub.publish(self.image_message(depth, "32FC1", stamp))
@@ -202,8 +224,7 @@ class GensongMujoco(Node):
     def destroy_node(self):
         self.running = False
         if hasattr(self, "sim_thread"): self.sim_thread.join(timeout=2.0)
-        if self.renderer is not None and threading.current_thread() is self.sim_thread:
-            self.renderer.close()
+        if hasattr(self, "camera_thread"): self.camera_thread.join(timeout=2.0)
         super().destroy_node()
 
 
