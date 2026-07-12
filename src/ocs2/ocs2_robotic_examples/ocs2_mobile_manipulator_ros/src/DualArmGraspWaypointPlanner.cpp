@@ -62,10 +62,10 @@ class DualArmGraspWaypointPlanner final {
     planningFrame_ = node_->declare_parameter<std::string>("planning_frame", modelInfo_.baseFrame);
     boxPoseTopic_ = node_->declare_parameter<std::string>("box_pose_topic", "box_pose");
     placeBoxPoseTopic_ = node_->declare_parameter<std::string>("place_box_pose_topic", "place_box_pose");
-    boxSizeX_ = node_->declare_parameter<double>("box_size_x", 0.1978);
-    boxSizeY_ = node_->declare_parameter<double>("box_size_y", 0.2966);
-    boxSizeZ_ = node_->declare_parameter<double>("box_size_z", 0.1464);
-    graspEdgeInsetY_ = node_->declare_parameter<double>("grasp_edge_inset_y", 0.0);
+    boxSizeX_ = node_->declare_parameter<double>("box_size_x", 0.45);
+    boxSizeY_ = node_->declare_parameter<double>("box_size_y", 0.72);
+    boxSizeZ_ = node_->declare_parameter<double>("box_size_z", 0.12);
+    graspEdgeInsetY_ = node_->declare_parameter<double>("grasp_edge_inset_y", 0.02);
     graspXOffset_ = node_->declare_parameter<double>("grasp_x_offset", 0.0);
     graspZOffset_ = node_->declare_parameter<double>("grasp_z_offset", -0.01);
     graspFrameOrientation_ = rpyToQuaternion(node_->declare_parameter<double>("grasp_frame_rpy.roll", 0.0),
@@ -1157,10 +1157,10 @@ class DualArmGraspWaypointPlanner final {
   std::string planningFrame_;
   std::string boxPoseTopic_;
   std::string placeBoxPoseTopic_;
-  double boxSizeX_ = 0.1978;
-  double boxSizeY_ = 0.2966;
-  double boxSizeZ_ = 0.1464;
-  double graspEdgeInsetY_ = 0.0;
+  double boxSizeX_ = 0.45;
+  double boxSizeY_ = 0.72;
+  double boxSizeZ_ = 0.12;
+  double graspEdgeInsetY_ = 0.02;
   double graspEdgeOffsetY_ = 0.0;
   double graspXOffset_ = 0.0;
   double graspZOffset_ = -0.01;

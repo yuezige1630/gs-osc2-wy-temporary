@@ -19,7 +19,7 @@ class SceneContractTest(unittest.TestCase):
         base = root.find('.//body[@name="base_link"]')
         self.assertEqual(base.attrib["pos"], "0 0 0")
         box = root.find('.//body[@name="scene_box"]')
-        self.assertEqual(box.attrib["pos"], "1.0 0 0.81")
+        self.assertEqual(box.attrib["pos"], "0.8 0 0.81")
         self.assertEqual(box.attrib["euler"], "1.5708 0 0")
         table = root.find('.//body[@name="scene_table"]')
         self.assertEqual(table.attrib["pos"], "1.5 -1.0 0")
@@ -42,6 +42,24 @@ class SceneContractTest(unittest.TestCase):
         self.assertIn('self.camera_thread = threading.Thread(', source)
         self.assertIn('mujoco.mj_copyData(', source)
         self.assertNotIn('joint_state_publish_interval', source)
+
+    def test_scene_box_uses_primitive_collision_walls_for_thin_mesh(self):
+        root = ET.parse(SCENE).getroot()
+        box = root.find('.//body[@name="scene_box"]')
+        collision_geoms = box.findall('./geom[@name]')
+        names = {geom.attrib["name"] for geom in collision_geoms if geom.attrib["name"].startswith("scene_box_collision_")}
+
+        self.assertEqual(
+            names,
+            {
+                "scene_box_collision_bottom",
+                "scene_box_collision_left",
+                "scene_box_collision_right",
+                "scene_box_collision_front",
+                "scene_box_collision_back",
+            },
+        )
+        self.assertIsNone(box.find('./geom[@name="scene_box_collision"]'))
 
 
 if __name__ == "__main__":

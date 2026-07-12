@@ -219,6 +219,10 @@ inline bool shouldPublishCommandForObservationTime(double observationTime, const
   return !lastPublishedObservationTime.has_value() || observationTime != *lastPublishedObservationTime;
 }
 
+// The bootstrap MPC policy is initialized from end-effector poses only and can
+// choose a different redundant joint configuration before a real target arrives.
+inline bool shouldHoldInitialPose(bool externalTargetReceived) { return !externalTargetReceived; }
+
 inline bool hasDuplicateMpcRosGraphEndpoints(size_t observationPublishers, size_t policyPublishers, size_t resetServices,
                                              std::string* errorMessage) {
   if (observationPublishers > 1u) {

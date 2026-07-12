@@ -176,7 +176,7 @@ def generate_launch_description():
         ),
         launch.actions.DeclareLaunchArgument(
             name='grasp_edge_inset_y',
-            default_value='0.0'
+            default_value='0.02'
         ),
         launch.actions.DeclareLaunchArgument(
             name='grasp_x_offset',

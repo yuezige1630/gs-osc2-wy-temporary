@@ -66,7 +66,9 @@ def generate_launch_description():
             executable='static_transform_publisher',
             name='gensong_world_to_base_tf',
             output='screen',
-            arguments=['0', '0', '0', '0', '0', '0', 'world', 'base_link']
+            arguments=['--x', '0', '--y', '0', '--z', '0',
+                       '--roll', '0', '--pitch', '0', '--yaw', '0',
+                       '--frame-id', 'world', '--child-frame-id', 'base_link']
         ),
         launch.actions.IncludeLaunchDescription(
             launch.launch_description_sources.PythonLaunchDescriptionSource(

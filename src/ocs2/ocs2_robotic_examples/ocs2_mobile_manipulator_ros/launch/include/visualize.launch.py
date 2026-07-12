@@ -2,9 +2,10 @@ import os
 import launch
 import launch_ros.actions
 from launch.conditions import IfCondition
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import Command, LaunchConfiguration
 from ament_index_python.packages import get_package_share_directory
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 
 
 def generate_launch_description():
@@ -33,7 +34,7 @@ def generate_launch_description():
             package="robot_state_publisher",
             executable="robot_state_publisher",
             output="screen",
-            arguments=[LaunchConfiguration("urdfFile")],
+            parameters=[{"robot_description": ParameterValue(Command(["cat ", LaunchConfiguration("urdfFile")]), value_type=str)}],
             remappings=[("joint_states", LaunchConfiguration("joint_states_topic"))],
         ),
         Node(

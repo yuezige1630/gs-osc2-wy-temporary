@@ -203,7 +203,7 @@ ros2 launch ocs2_mobile_manipulator_ros grasp_waypoint_planner.launch.py \
 ```bash
 source /opt/ros/jazzy/setup.bash
 source /home/robot-zhao/work/gensong_ros2/install/setup.bash
-ros2 topic pub --once /box_pose geometry_msgs/msg/PoseStamped "{header: {frame_id: base_link}, pose: {position: {x: 0.88556, y: 0, z: 0.91074}, orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}}}"
+ros2 topic pub --once /box_pose geometry_msgs/msg/PoseStamped "{header: {frame_id: base_link}, pose: {position: {x: 1.0, y: 0, z: 0.81}, orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}}}"
 ```
 
 发送后，规划器会自动启动第一段，不需要再调 service。
@@ -274,7 +274,7 @@ ros2 launch ocs2_mobile_manipulator_ros grasp_waypoint_planner.launch.py
 ```bash
 source /opt/ros/jazzy/setup.bash
 source /home/robot-zhao/work/gensong_ros2/install/setup.bash
-ros2 topic pub --once /box_pose geometry_msgs/msg/PoseStamped "{header: {frame_id: base_link}, pose: {position: {x: 0.82795, y: 0, z: 0.91074}, orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}}}"
+ros2 topic pub --once /box_pose geometry_msgs/msg/PoseStamped "{header: {frame_id: base_link}, pose: {position: {x: 0.80, y: 0, z: 1.0}, orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}}}"
 ```
 
 等待机器人完成抓取并抬起。

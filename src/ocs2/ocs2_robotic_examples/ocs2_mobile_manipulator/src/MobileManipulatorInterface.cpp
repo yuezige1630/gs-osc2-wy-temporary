@@ -246,7 +246,7 @@ std::unique_ptr<StateInputCost> MobileManipulatorInterface::getQuadraticInputCos
 
   // arm joints DOFs input costs
   matrix_t R_arm = matrix_t::Zero(armStateDim, armStateDim);
-  loadData::loadEigenMatrix(taskFile, "inputCost.R.arm", R_arm);
+  loadData::loadEigenMatrix(taskFile, "inputCost.R.arm", R_arm, false);
   R.bottomRightCorner(armStateDim, armStateDim) = R_arm;
 
   std::cerr << "\n #### Input Cost Settings: ";

@@ -1,8 +1,12 @@
 ; robot model meta-information
+; 机器人模型元信息
 model_information {
+  ; 操作臂模型类型: 0=默认机械臂(固定基座), 1=轮式移动操作臂, 2=浮基操作臂, 3=全驱动浮基操作臂
   manipulatorModelType     0      // 0: Default-arm, 1: Wheel-based manipulator, 2: Floating-arm manipulator, 3: Fully actuated floating-arm manipulator
 
   ; motion joints in the URDF to consider fixed
+  ; URDF中视为固定的关节(不作为优化变量,减少状态维度)
+  ; 包含4个轮子驱动/从动关节 + 22个手指关节(左右手各11个)
   removeJoints {
     [0]  "wheel_drive_left_joint"
     [1]  "wheel_drive_right_joint"
@@ -33,95 +37,120 @@ model_information {
   }
 
   ; base frame of the robot (from URDF)
+  ; 机器人基坐标系(URDF中的根坐标系)
   baseFrame                       "base_link"
 
   ; end-effector frames of the robot (from URDF)
+  ; 末端执行器坐标系(双臂左右手掌板)
   eeFrames {
     [0] "handboard_left"
     [1] "handboard_right"
   }
 }
 
+; model settings
+; 模型设置
 model_settings
 {
+  ; 是否使用预计算(预计算运动学/动力学雅可比等,加速在线计算)
   usePreComputation               true
+  ; 是否重新编译OCS2库(修改模型后需重新编译)
   recompileLibraries              true
 }
 
 ; DDP settings
+; DDP/SLQ 求解器设置 (Dynamic Programming with Differential Dynamics)
 ddp
 {
+  ; 求解算法: SLQ = Sequential Linear Quadratic (序列线性二次型)
   algorithm                       SLQ
 
+  ; 并行计算线程数
   nThreads                        3
-  threadPriority                  50
+  ; 线程优先级 (数值越大优先级越高)
+  threadPriority                  0
 
+  ; 每次MPC调用时最大迭代次数 (1表示每次只迭代一次,适合实时MPC)
   maxNumIterations                1
+  ; 相对代价改进阈值: 当代价改进小于此值时提前终止迭代
   minRelCost                      0.1
+  ; 约束违反容差 (约束小于此值视为满足)
   constraintTolerance             1e-3
 
-  displayInfo                     false
-  displayShortSummary             false
-  checkNumericalStability         false
-  debugPrintRollout               false
-  debugCaching                    false
+  ; 调试与显示选项
+  displayInfo                     false       ; 打印详细信息
+  displayShortSummary             false       ; 打印简短摘要
+  checkNumericalStability         false       ; 检查数值稳定性
+  debugPrintRollout               false       ; 打印rollout调试信息
+  debugCaching                    false       ; 打印缓存调试信息
 
-  AbsTolODE                       1e-5
-  RelTolODE                       1e-3
-  maxNumStepsPerSecond            100000
-  timeStep                        1e-3
-  backwardPassIntegratorType      ODE45
+  ; ODE 求解器参数 (用于前向/反向积分)
+  AbsTolODE                       1e-5        ; 绝对容差
+  RelTolODE                       1e-3        ; 相对容差
+  maxNumStepsPerSecond            100000      ; 每秒最大积分步数(防止数值发散)
+  timeStep                        1e-3        ; 积分时间步长 [s]
+  backwardPassIntegratorType      ODE45       ; 反向传播积分器类型 (ODE45 = 4-5阶Runge-Kutta)
 
-  constraintPenaltyInitialValue   20.0
-  constraintPenaltyIncreaseRate   2.0
+  ; 约束惩罚参数 (用于软约束转化为代价)
+  constraintPenaltyInitialValue   20.0        ; 惩罚初始值
+  constraintPenaltyIncreaseRate   2.0         ; 惩罚增长速率(每次迭代翻倍)
 
+  ; 预计算Riccati矩阵项 (加速反向传播)
   preComputeRiccatiTerms          true
 
+  ; 使用反馈策略 (使用时变LQR反馈增益,而非仅前向控制)
   useFeedbackPolicy               true
 
+  ; 策略类型: LINE_SEARCH = 线搜索
   strategy                        LINE_SEARCH
   lineSearch
   {
-    minStepLength                 1e-2
-    maxStepLength                 1.0
-    hessianCorrectionStrategy     DIAGONAL_SHIFT
-    hessianCorrectionMultiple     1e-3
+    minStepLength                 1e-2        ; 线搜索最小步长
+    maxStepLength                 1.0         ; 线搜索最大步长
+    hessianCorrectionStrategy     DIAGONAL_SHIFT  ; Hessian矩阵修正策略(对角偏移保证正定)
+    hessianCorrectionMultiple     1e-3        ; Hessian修正乘子
   }
 }
 
 ; Rollout settings
+; 前向Rollout设置 (使用当前策略模拟系统前向演化)
 rollout
 {
-  AbsTolODE                       1e-5
-  RelTolODE                       1e-3
-  timeStep                        1e-2
-  integratorType                  ODE45
-  maxNumStepsPerSecond            100000
-  checkNumericalStability         false
+  AbsTolODE                       1e-5        ; ODE绝对容差
+  RelTolODE                       1e-3        ; ODE相对容差
+  timeStep                        1e-2        ; 积分步长 [s] (比DDP的大,因只需粗略前向仿真)
+  integratorType                  ODE45       ; 积分器类型 (4-5阶Runge-Kutta)
+  maxNumStepsPerSecond            100000      ; 每秒最大积分步数
+  checkNumericalStability         false       ; 是否检查数值稳定性
 }
 
 ; MPC settings
+; MPC设置 (Model Predictive Control)
 mpc
 {
-  timeHorizon                     4.0   ; [s]
-  solutionTimeWindow              -1    ; maximum [s], keep policy coverage alive during tracking
-  coldStart                       false
+  timeHorizon                     4.0   ; [s] 预测时间域长度
+  solutionTimeWindow              1.0   ; [s] 解的时间窗口 (限制策略传输大小,保证控制覆盖)
+  coldStart                       false ; 是否冷启动 (true表示无初始策略时从头求解)
 
-  debugPrint                      false
+  debugPrint                      false ; 打印MPC调试信息
 
-  mpcDesiredFrequency             10    ; [Hz] policy refresh for waypoint tracking
-  mrtDesiredFrequency             50    ; [Hz] smooth command execution from 500 Hz state input
+  mpcDesiredFrequency             25     ; [Hz] MPC策略刷新频率 (用于航点跟踪,降低以给MPC更多计算时间)
+  mrtDesiredFrequency             100    ; [Hz] MRT命令执行频率 (匹配joint_states 100Hz发布率)
 }
 
 ; initial state
+; 初始状态 (按模型类型分别定义base和arm的初始状态)
 initialState
 {
+  ; 底盘部分初始状态
   base
   {
+    ; 默认机械臂(固定基座,无base状态)
     defaultManipulator
     {
     }
 
+    ; 浮基操作臂: 6维base状态 (位置x,y,z + 姿态roll,pitch,yaw)
     floatingArmManipulator
     {
       (0,0)  0.0
@@ -132,6 +161,7 @@ initialState
       (5,0)  0.0
     }
 
+    ; 全驱动浮基操作臂: 6维base状态 (6个自由度全部可控)
     fullyActuatedFloatingArmManipulator
     {
       (0,0)  0.0
@@ -142,6 +172,7 @@ initialState
       (5,0)  0.0
     }
 
+    ; 轮式移动操作臂: 3维base状态 (x, y, yaw)
     wheelBasedMobileManipulator
     {
       (0,0)  0.0
@@ -150,6 +181,7 @@ initialState
     }
   }
 
+  ; 机械臂部分初始状态: 19个关节角度 (左臂7 + 右臂7 + 腰部/胸部5)
   arm
   {
     (0,0)   0.0
@@ -175,10 +207,13 @@ initialState
 }
 
 ; input costs
+; 输入代价 (控制输入u的二次型代价 u' R u,惩罚控制能量)
 inputCost
 {
+  ; R矩阵: 输入权重对角矩阵 (按模型类型分base和arm两部分)
   R
   {
+    ; 底盘输入权重
     base
     {
       defaultManipulator
@@ -189,6 +224,7 @@ inputCost
       {
       }
 
+      ; 全驱动浮基: 6维base输入权重
       fullyActuatedFloatingArmManipulator
       {
         (0,0)  1.0
@@ -199,6 +235,7 @@ inputCost
         (5,5)  1.0
       }
 
+      ; 轮式移动: 2维base输入权重 (左轮、右轮速度)
       wheelBasedMobileManipulator
       {
         (0,0)  1.0
@@ -206,9 +243,10 @@ inputCost
       }
     }
 
+    ; 机械臂输入权重: 19维 (与arm状态维度一致)
     arm
     {
-      scaling 1e-2
+      scaling 1e-2    ; 整体缩放系数 (降低arm相对于base的代价权重)
       (0,0)    1.0
       (1,1)    1.0
       (2,2)    1.0
@@ -232,61 +270,72 @@ inputCost
   }
 }
 
+; 末端执行器跟踪代价 (运行时,用于轨迹跟踪)
 endEffector
 {
-  muPosition      30.0
-  muOrientation    30.0
+  muPosition      30.0    ; 位置跟踪的松弛对数障碍参数mu (越大跟踪越严格)
+  muOrientation    30.0   ; 姿态跟踪的松弛对数障碍参数mu
 }
 
+; 末端执行器终端代价 (用于终端约束,通常权重更大以保证终端精度)
 finalEndEffector
 {
-  muPosition      50.0
-  muOrientation    40.0
+  muPosition      50.0    ; 终端位置跟踪mu (比运行时大,保证终端精度)
+  muOrientation    40.0   ; 终端姿态跟踪mu
 }
 
 selfCollision
 {
   ; activate self-collision constraint
+  ; 是否激活自碰撞约束
   activate  true
 
   ; Self Collision raw object pairs
+  ; 自碰撞原始物体对 (使用碰撞物体名称,通常为空)
   collisionObjectPairs
   {
   }
 
   ; Self Collision pairs
+  ; 自碰撞链接对 (使用URDF链接名称,检查这些链接对之间的距离)
   collisionLinkPairs
   {
-    [0] "chest_link, arm1_left_link"
-    [1] "chest_link, arm1_right_link"
-    [2] "arm1_left_link, arm1_right_link"
-    [3] "arm3_left_link, arm3_right_link"
-    [4] "arm4_left_link, arm4_right_link"
+    [0] "chest_link, arm1_left_link"      ; 胸部与左大臂
+    [1] "chest_link, arm1_right_link"     ; 胸部与右大臂
+    [2] "arm1_left_link, arm1_right_link" ; 左右大臂之间
+    [3] "arm3_left_link, arm3_right_link" ; 左右前臂之间
+    [4] "arm4_left_link, arm4_right_link" ; 左右腕部之间
   }
 
   ; minimum distance allowed between the pairs
+  ; 链接对之间允许的最小距离 [m] (低于此值触发碰撞惩罚)
   minimumDistance  0.05
 
   ; relaxed log barrier mu
+  ; 松弛对数障碍函数的mu参数 (控制约束的硬度,越大越硬)
   mu      1e-2
 
   ; relaxed log barrier delta
+  ; 松弛对数障碍函数的delta参数 (松弛带宽,在此范围内约束软化)
   delta   1e-3
 }
 
+; 关节位置限制约束
 jointPositionLimits
 {
-  activate  true
+  activate  true    ; 是否激活关节位置限制
 
-  mu      0.01
-  delta   1e-3
+  mu      0.01      ; 松弛对数障碍mu (关节位置约束硬度)
+  delta   1e-3      ; 松弛对数障碍delta (关节位置约束松弛带宽)
 }
 
+; 关节速度限制约束
 jointVelocityLimits
 {
-  mu      0.01
-  delta   1e-3
+  mu      0.01      ; 松弛对数障碍mu (关节速度约束硬度)
+  delta   1e-3      ; 松弛对数障碍delta (关节速度约束松弛带宽)
 
+  ; 速度下界
   lowerBound
   {
     base
@@ -299,6 +348,7 @@ jointVelocityLimits
       {
       }
 
+      ; 全驱动浮基: 6维base速度下界 [rad/s] 或 [m/s]
       fullyActuatedFloatingArmManipulator
       {
         (0,0)  -0.1
@@ -309,6 +359,7 @@ jointVelocityLimits
         (5,0)  -0.3
       }
 
+      ; 轮式移动: 2维base速度下界 (左轮、右轮)
       wheelBasedMobileManipulator
       {
         (0,0)  -0.1
@@ -316,6 +367,7 @@ jointVelocityLimits
       }
     }
 
+    ; 机械臂19维关节速度下界 [rad/s]
     arm
     {
       (0,0)   -1.5
@@ -340,6 +392,7 @@ jointVelocityLimits
     }
   }
 
+  ; 速度上界
   upperBound
   {
     base
@@ -352,6 +405,7 @@ jointVelocityLimits
       {
       }
 
+      ; 全驱动浮基: 6维base速度上界
       fullyActuatedFloatingArmManipulator
       {
         (0,0)  0.1
@@ -362,6 +416,7 @@ jointVelocityLimits
         (5,0)  0.3
       }
 
+      ; 轮式移动: 2维base速度上界
       wheelBasedMobileManipulator
       {
         (0,0)  0.1
@@ -369,6 +424,7 @@ jointVelocityLimits
       }
     }
 
+    ; 机械臂19维关节速度上界 [rad/s]
     arm
     {
       (0,0)   1.5

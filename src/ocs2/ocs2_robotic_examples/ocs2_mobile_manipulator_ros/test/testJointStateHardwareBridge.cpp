@@ -142,6 +142,11 @@ TEST(JointStateHardwareBridgeHelpers, DetectsNewObservationSamplesForCommandPubl
   EXPECT_FALSE(shouldPublishCommandForObservationTime(10.1, 10.1));
 }
 
+TEST(JointStateHardwareBridgeHelpers, HoldsInitialPoseUntilExternalTargetArrives) {
+  EXPECT_TRUE(shouldHoldInitialPose(false));
+  EXPECT_FALSE(shouldHoldInitialPose(true));
+}
+
 TEST(JointStateHardwareBridgeHelpers, DetectsDuplicateMpcRosGraphEndpoints) {
   std::string error;
   EXPECT_FALSE(hasDuplicateMpcRosGraphEndpoints(1, 0, 1, &error));

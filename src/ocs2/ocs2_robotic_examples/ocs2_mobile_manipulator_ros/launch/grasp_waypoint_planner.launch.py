@@ -91,9 +91,8 @@ def generate_launch_description():
         ),
         launch.actions.DeclareLaunchArgument(
             name='grasp_edge_inset_y',
-            # Open both arms slightly beyond the box edges so the handboards
-            # approach from outside instead of colliding at the boundary.
-            default_value='-0.03'
+            # Positive inset = hands press INSET into the box for firm friction grip
+            default_value='0.02'
         ),
         launch.actions.DeclareLaunchArgument(
             name='grasp_x_offset',

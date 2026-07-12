@@ -2,3 +2,11 @@ ERROR mj_copyDataVisual (engine_io.c:1162) Fri Jul 10 14:55:32 2026: attempting 
 
 ERROR Sun Jul 12 15:01:57 2026: could not initialize GLFW
 
+ERROR Sun Jul 12 18:30:32 2026: could not initialize GLFW
+
+ERROR mj_copyDataVisual (engine_io.c:1162) Sun Jul 12 22:35:13 2026: attempting to copy mjData while stack is in use
+
+ERROR mj_copyDataVisual (engine_io.c:1162) Sun Jul 12 22:45:38 2026: attempting to copy mjData while stack is in use
+
+ERROR mj_copyDataVisual (engine_io.c:1162) Sun Jul 12 22:45:56 2026: attempting to copy mjData while stack is in use
+
