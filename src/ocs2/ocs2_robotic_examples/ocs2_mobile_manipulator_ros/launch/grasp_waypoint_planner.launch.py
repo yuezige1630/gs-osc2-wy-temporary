@@ -15,7 +15,9 @@ def _assert_no_existing_grasp_stack(context):
         while node.get_clock().now().nanoseconds < end_time:
             rclpy.spin_once(node, timeout_sec=0.1)
 
-        existing_names = {name for name, _namespace in node.get_node_names_and_namespaces()}
+        node_records = node.get_node_names_and_namespaces()
+        existing_names = {name for name, _namespace in node_records}
+        mujoco_instance_count = sum(name == "gensong_mujoco" for name, _namespace in node_records)
         conflicting_names = sorted(existing_names.intersection({
             "dual_arm_grasp_waypoint_planner",
             "gensong_world_to_base_tf",
@@ -27,12 +29,20 @@ def _assert_no_existing_grasp_stack(context):
         node.destroy_node()
         rclpy.shutdown()
 
-    if conflicting_names:
-        raise RuntimeError(
-            "[grasp_waypoint_planner.launch.py] Refusing to start because an existing grasp planner stack is already "
-            "running. Conflicting nodes: " + ", ".join(conflicting_names) +
-            ". Stop the previous launch before starting a new one."
-        )
+    if conflicting_names or mujoco_instance_count != 1:
+        errors = []
+        if conflicting_names:
+            errors.append(
+                "an existing grasp planner stack is already running (conflicting nodes: "
+                + ", ".join(conflicting_names)
+                + ")"
+            )
+        if mujoco_instance_count != 1:
+            errors.append(
+                "expected exactly one /gensong_mujoco node, found " + str(mujoco_instance_count)
+                + "; stop stale MuJoCo instances before starting"
+            )
+        raise RuntimeError("[grasp_waypoint_planner.launch.py] Refusing to start because " + "; ".join(errors) + ".")
 
     return []
 

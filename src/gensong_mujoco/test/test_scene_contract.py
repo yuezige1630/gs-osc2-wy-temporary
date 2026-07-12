@@ -20,7 +20,7 @@ class SceneContractTest(unittest.TestCase):
         self.assertEqual(base.attrib["pos"], "0 0 0")
         box = root.find('.//body[@name="scene_box"]')
         self.assertEqual(box.attrib["pos"], "0.8 0 0.81")
-        self.assertEqual(box.attrib["euler"], "1.5708 0 0")
+        self.assertNotIn("euler", box.attrib)
         table = root.find('.//body[@name="scene_table"]')
         self.assertEqual(table.attrib["pos"], "1.5 -1.0 0")
         self.assertEqual(table.attrib["euler"], "0 1.5708 1.5708")
@@ -43,23 +43,38 @@ class SceneContractTest(unittest.TestCase):
         self.assertIn('mujoco.mj_copyData(', source)
         self.assertNotIn('joint_state_publish_interval', source)
 
-    def test_scene_box_uses_primitive_collision_walls_for_thin_mesh(self):
+    def test_scene_box_visual_mesh_is_used_for_collision(self):
         root = ET.parse(SCENE).getroot()
         box = root.find('.//body[@name="scene_box"]')
-        collision_geoms = box.findall('./geom[@name]')
-        names = {geom.attrib["name"] for geom in collision_geoms if geom.attrib["name"].startswith("scene_box_collision_")}
+        visual = box.find('./geom[@name="scene_box_visual"]')
 
-        self.assertEqual(
-            names,
-            {
-                "scene_box_collision_bottom",
-                "scene_box_collision_left",
-                "scene_box_collision_right",
-                "scene_box_collision_front",
-                "scene_box_collision_back",
-            },
-        )
+        self.assertIsNotNone(visual)
+        self.assertEqual(visual.attrib["type"], "mesh")
+        self.assertEqual(visual.attrib["mesh"], "scene_box")
+        self.assertEqual(visual.attrib["contype"], "1")
+        self.assertEqual(visual.attrib["conaffinity"], "1")
+        self.assertEqual(visual.attrib["quat"], "0.70710678 0.70710678 0 0")
         self.assertIsNone(box.find('./geom[@name="scene_box_collision"]'))
+        primitive_collision_names = [
+            geom.attrib["name"]
+            for geom in box.findall("./geom[@name]")
+            if geom.attrib["name"].startswith("scene_box_collision_")
+        ]
+        self.assertEqual(primitive_collision_names, [])
+
+    def test_scene_table_uses_primitive_collision_geometry(self):
+        root = ET.parse(SCENE).getroot()
+        table = root.find('.//body[@name="scene_table"]')
+        visual = table.find('./geom[@name="scene_table_visual"]')
+        collision_mesh = table.find('./geom[@name="scene_table_collision"]')
+        primitive_collisions = table.findall('./geom[@name="scene_table_top_collision"]')
+
+        self.assertIsNotNone(visual)
+        self.assertEqual(visual.attrib["contype"], "0")
+        self.assertIsNone(collision_mesh)
+        self.assertEqual(len(primitive_collisions), 1)
+        self.assertEqual(primitive_collisions[0].attrib["type"], "box")
+        self.assertEqual(primitive_collisions[0].attrib["pos"], "1.0 0.725 -0.5")
 
 
 if __name__ == "__main__":

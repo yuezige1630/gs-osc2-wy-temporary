@@ -8,7 +8,6 @@ Copyright (c) 2026.
 #include <ocs2_mobile_manipulator_ros/JointStateHardwareBridgeHelpers.h>
 #include <ocs2_mpc/SystemObservation.h>
 #include <ocs2_ros_interfaces/mrt/MRT_ROS_Interface.h>
-#include <ocs2_msgs/msg/mpc_target_trajectories.hpp>
 
 #include <pinocchio/algorithm/frames.hpp>
 #include <pinocchio/algorithm/kinematics.hpp>
@@ -58,8 +57,7 @@ class MobileManipulatorHardwareMrtNode {
                                  size_t(1))),
         mpcObservationTopic_(std::string(kRobotName) + "_mpc_observation"),
         mpcPolicyTopic_(std::string(kRobotName) + "_mpc_policy"),
-        mpcResetService_(std::string(kRobotName) + "_mpc_reset"),
-        mpcTargetTopic_(std::string(kRobotName) + "_mpc_target") {
+        mpcResetService_(std::string(kRobotName) + "_mpc_reset") {
     if (taskFile_.empty() || libFolder_.empty() || urdfFile_.empty()) {
       throw std::runtime_error(
           "[MobileManipulatorHardwareMRT] Parameters 'taskFile', 'libFolder', and 'urdfFile' are required.");
@@ -79,12 +77,6 @@ class MobileManipulatorHardwareMrtNode {
     observationSubscription_ = node_->create_subscription<sensor_msgs::msg::JointState>(
         observationTopic_, rclcpp::SensorDataQoS(),
         std::bind(&MobileManipulatorHardwareMrtNode::jointStateCallback, this, std::placeholders::_1));
-    targetSubscription_ = node_->create_subscription<ocs2_msgs::msg::MpcTargetTrajectories>(
-        mpcTargetTopic_, rclcpp::QoS(1), [this](const ocs2_msgs::msg::MpcTargetTrajectories::ConstSharedPtr&) {
-          std::lock_guard<std::mutex> lock(mutex_);
-          externalTargetReceived_ = true;
-        });
-
     RCLCPP_INFO(node_->get_logger(), "Hardware MRT subscribing %s and publishing %s", observationTopic_.c_str(),
                 commandTopic_.c_str());
     RCLCPP_INFO(node_->get_logger(), "Hardware MRT publishes commands only when a fresh hardware observation arrives.");
@@ -92,19 +84,18 @@ class MobileManipulatorHardwareMrtNode {
     RCLCPP_INFO(node_->get_logger(), "Hardware MRT filters commands with blend alpha %.3f and max delta %.3f rad per publish.",
                 commandBlendAlpha_, maxJointDeltaPerCommand_);
     RCLCPP_INFO(node_->get_logger(),
-                "Hardware MRT holds the first observed arm pose until a target arrives on %s.", mpcTargetTopic_.c_str());
+                "Hardware MRT initializes MPC with the configured initial end-effector pose and follows MPC joint commands.");
   }
 
   void run() {
     waitForUniqueMpcEndpoints();
     waitForInitialObservation();
     const auto initialObservation = getLatestObservationOrThrow();
-    {
-      std::lock_guard<std::mutex> lock(mutex_);
-      initialArmState_ = getArmJointAngles(initialObservation.state, modelInfo_);
-    }
-    const auto initTargetTrajectories = buildCurrentPoseTargetTrajectories(initialObservation);
-    RCLCPP_INFO(node_->get_logger(), "Resetting MPC with first complete hardware observation.");
+    auto initialTargetObservation = initialObservation;
+    initialTargetObservation.state = interface_.getInitialState();
+    const auto initTargetTrajectories = buildCurrentPoseTargetTrajectories(initialTargetObservation);
+    RCLCPP_INFO(node_->get_logger(),
+                "Resetting MPC with the configured initial end-effector pose; joint redundancy remains under MPC control.");
     mrt_.resetMpcNode(initTargetTrajectories);
 
     rclcpp::Rate rate(interface_.mpcSettings().mrtDesiredFrequency_);
@@ -203,13 +194,7 @@ class MobileManipulatorHardwareMrtNode {
       }
 
       const auto& nextStateConst = static_cast<const vector_t&>(nextState);
-      vector_t desiredArmState;
-      {
-        std::lock_guard<std::mutex> lock(mutex_);
-        desiredArmState = shouldHoldInitialPose(externalTargetReceived_)
-                              ? initialArmState_
-                              : vector_t(getArmJointAngles(nextStateConst, modelInfo_));
-      }
+      const vector_t desiredArmState = vector_t(getArmJointAngles(nextStateConst, modelInfo_));
       const auto filteredArmState =
           filterCommandPositions(desiredArmState, lastPublishedControlledState_, commandBlendAlpha_, maxJointDeltaPerCommand_);
       auto commandMsg = buildCommandJointState(commandHeader, filteredArmState, modelInfo_.dofNames, outputJointNames_);
@@ -382,7 +367,6 @@ class MobileManipulatorHardwareMrtNode {
   const std::string mpcObservationTopic_;
   const std::string mpcPolicyTopic_;
   const std::string mpcResetService_;
-  const std::string mpcTargetTopic_;
 
   MobileManipulatorInterface interface_;
   MRT_ROS_Interface mrt_;
@@ -392,7 +376,6 @@ class MobileManipulatorHardwareMrtNode {
 
   rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr commandPublisher_;
   rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr observationSubscription_;
-  rclcpp::Subscription<ocs2_msgs::msg::MpcTargetTrajectories>::SharedPtr targetSubscription_;
 
   std::vector<std::string> outputJointNames_;
 
@@ -403,8 +386,6 @@ class MobileManipulatorHardwareMrtNode {
   std::string latestObservationError_;
   size_t latestMode_ = 0;
   bool hasCompleteObservation_ = false;
-  bool externalTargetReceived_ = false;
-  vector_t initialArmState_;
   const size_t mpcUpdateRatio_;
   double pendingPolicyObservationTime_ = 0.0;
   bool pendingPolicyRequest_ = false;

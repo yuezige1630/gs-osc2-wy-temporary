@@ -338,21 +338,34 @@
       <geom class="trajectory_point" name="traj_point_18" pos="0 0 0" rgba="0 1 0.2 0.3"/>
       <geom class="trajectory_point" name="traj_point_19" pos="0 0 0" rgba="0 0.8 1 0.3"/>
     </body> -->
-      <body name="scene_box" pos="0.8 0 0.81" euler="1.5708 0 0">
-        <freejoint name="scene_box_freejoint"/>
-        <geom name="scene_box_visual" type="mesh" mesh="scene_box" rgba="0.08 0.25 0.85 1" contype="0" conaffinity="0" mass="0"/>
-        <!-- Use primitive collision walls instead of the thin, concave mesh.
-             The OBJ is 0.45 x 0.12 x 0.72 m locally; after the body rotation
-             its world dimensions are 0.45 x 0.72 x 0.12 m. -->
-        <geom name="scene_box_collision_bottom" type="box" pos="0 -0.05 0" size="0.225 0.01 0.36" contype="1" conaffinity="1" mass="3.0" friction="2.0 0.1 0.01" condim="3" margin="0.01" solref="0.003 1" solimp="0.95 0.99 0.001" rgba="0 1 0 0.18"/>
-        <geom name="scene_box_collision_left" type="box" pos="0 0 0.35" size="0.225 0.06 0.01" contype="1" conaffinity="1" mass="0" friction="2.0 0.1 0.01" condim="3" margin="0.01" solref="0.003 1" solimp="0.95 0.99 0.001" rgba="0 1 0 0.18"/>
-        <geom name="scene_box_collision_right" type="box" pos="0 0 -0.35" size="0.225 0.06 0.01" contype="1" conaffinity="1" mass="0" friction="2.0 0.1 0.01" condim="3" margin="0.01" solref="0.003 1" solimp="0.95 0.99 0.001" rgba="0 1 0 0.18"/>
-        <geom name="scene_box_collision_front" type="box" pos="0.215 0 0" size="0.01 0.06 0.35" contype="1" conaffinity="1" mass="0" friction="2.0 0.1 0.01" condim="3" margin="0.01" solref="0.003 1" solimp="0.95 0.99 0.001" rgba="0 1 0 0.18"/>
-        <geom name="scene_box_collision_back" type="box" pos="-0.215 0 0" size="0.01 0.06 0.35" contype="1" conaffinity="1" mass="0" friction="2.0 0.1 0.01" condim="3" margin="0.01" solref="0.003 1" solimp="0.95 0.99 0.001" rgba="0 1 0 0.18"/>
+      <body name="scene_box" pos="0.8 0 0.81">
+        <joint name="scene_box_freejoint" type="free" damping="2.0"/>
+        <!-- Trial: use the visual mesh itself for collision. -->
+        <!-- The mesh is authored standing on its local Z axis. Rotate only the
+             geometry so the freejoint pose remains the ROS box_pose frame. -->
+        <geom name="scene_box_visual" type="mesh" mesh="scene_box" quat="0.70710678 0.70710678 0 0"
+              rgba="0.08 0.25 0.85 1" contype="1" conaffinity="1" mass="3.0" friction="2.0 0.1 0.01"
+              condim="3" margin="0.01" solref="0.003 1" solimp="0.95 0.99 0.001"/>
       </body>
       <body name="scene_table" pos="1.5 -1.0 0" euler="0 1.5708 1.5708">
         <geom name="scene_table_visual" type="mesh" mesh="scene_table" rgba="0.35 0.20 0.10 1" contype="0" conaffinity="0" mass="0"/>
-        <geom name="scene_table_collision" type="mesh" mesh="scene_table" contype="1" conaffinity="1" mass="50" rgba="1 0.55 0 0.12"/>
+        <!-- Use primitives for contacts. The original table mesh is kept visual-only because
+             its concave/open geometry produces unstable convex-hull contacts in MuJoCo. -->
+        <geom name="scene_table_top_collision" type="box" pos="1.0 0.725 -0.5" size="1.0 0.05 0.5"
+              contype="1" conaffinity="1" friction="1.0 0.1 0.01" condim="3" margin="0.005"
+              solref="0.003 1" solimp="0.95 0.99 0.001" rgba="1 0.55 0 0.12"/>
+        <geom name="scene_table_leg_front_left_collision" type="box" pos="0.1 0.325 -0.9" size="0.05 0.325 0.05"
+              contype="1" conaffinity="1" friction="1.0 0.1 0.01" condim="3" margin="0.005"
+              solref="0.003 1" solimp="0.95 0.99 0.001" rgba="1 0.55 0 0.12"/>
+        <geom name="scene_table_leg_front_right_collision" type="box" pos="1.9 0.325 -0.9" size="0.05 0.325 0.05"
+              contype="1" conaffinity="1" friction="1.0 0.1 0.01" condim="3" margin="0.005"
+              solref="0.003 1" solimp="0.95 0.99 0.001" rgba="1 0.55 0 0.12"/>
+        <geom name="scene_table_leg_back_left_collision" type="box" pos="0.1 0.325 -0.1" size="0.05 0.325 0.05"
+              contype="1" conaffinity="1" friction="1.0 0.1 0.01" condim="3" margin="0.005"
+              solref="0.003 1" solimp="0.95 0.99 0.001" rgba="1 0.55 0 0.12"/>
+        <geom name="scene_table_leg_back_right_collision" type="box" pos="1.9 0.325 -0.1" size="0.05 0.325 0.05"
+              contype="1" conaffinity="1" friction="1.0 0.1 0.01" condim="3" margin="0.005"
+              solref="0.003 1" solimp="0.95 0.99 0.001" rgba="1 0.55 0 0.12"/>
       </body>
   </worldbody>
 </mujoco>

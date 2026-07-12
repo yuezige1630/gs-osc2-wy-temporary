@@ -134,7 +134,7 @@ mpc
 
   debugPrint                      false ; 打印MPC调试信息
 
-  mpcDesiredFrequency             25     ; [Hz] MPC策略刷新频率 (用于航点跟踪,降低以给MPC更多计算时间)
+  mpcDesiredFrequency             10     ; [Hz] MPC策略刷新频率 (给双臂末端约束求解留出足够时间)
   mrtDesiredFrequency             100    ; [Hz] MRT命令执行频率 (匹配joint_states 100Hz发布率)
 }
 
@@ -181,7 +181,8 @@ initialState
     }
   }
 
-  ; 机械臂部分初始状态: 19个关节角度 (左臂7 + 右臂7 + 腰部/胸部5)
+  ; 机械臂部分初始状态: 19个关节角度
+  ; 顺序: leg_low, leg_up, waist_low, waist_up, chest, 左臂7, 右臂7
   arm
   {
     (0,0)   0.0
