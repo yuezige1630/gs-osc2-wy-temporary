@@ -6,11 +6,23 @@
 
 1. 发送 `box_pose`，机器人自动执行第一段：抓取 -> 抬起 -> 持箱等待。
 2. 发送 `place_box_pose`，机器人自动执行第二段的前半段：搬运 -> 预放置 -> 放置 -> 后撤 -> 松开/等待位。
-3. 机器人停在等待位后，再调用 `continue_return_to_initial_pose` service，机器人继续执行第二段后半段：直立过渡 -> 任务初始双臂末端位姿。
+3. 机器人停在等待位后，再调用 `continue_return_to_initial_pose` service，机器人继续执行第二段后半段：直立过渡 -> 固定的预搬运稳定姿态。
 
 在这两段之间，双手和箱子保持刚体关系，不会中途松掉箱子。
 第一段结束时，箱子会继续被带到一个预定义的 `upright/home` 位姿，箱体朝向与 `base_link` 轴对齐，同时会检查箱体长度对应的前向 clearance，避免箱子贴得太靠近机器人。
-放置段在 `release` 之后会先停在一个“松开/等待位姿”；等你再调用 `continue_return_to_initial_pose` service，机器人再回到“直立过渡位姿”，最后回到“任务初始双臂末端位姿”。这里的初始位姿是任务启动时第一份有效 observation 锁存下来的机器人默认位姿，不是上面这个 `home` 点。
+放置段在 `release` 之后会先停在一个“松开/等待位姿”；等你再调用 `continue_return_to_initial_pose` service，机器人再回到“直立过渡位姿”，最后回到固定的“预搬运稳定姿态”。启动规划器时，初始目标和该 service 的最终目标都来自 `task_dual_ee.info` 中固定的 `initialState.arm`，因此两条路径回到同一个全身 19 关节姿态，而不是只保持末端位置。
+
+当前固定姿态单位为弧度，关节顺序与模型一致：
+
+```text
+[leg_low=0.20, leg_up=0.35, waist_low=0.00, waist_up=0.00, chest=0.00,
+ arm1_left=0.00, arm2_left=0.55, arm3_left=0.00, arm4_left=-0.45,
+ wrist1_left=0.00, wrist2_left=0.00, wrist3_left=0.00,
+ arm1_right=0.00, arm2_right=-0.55, arm3_right=0.00, arm4_right=0.45,
+ wrist1_right=0.00, wrist2_right=0.00, wrist3_right=0.00]
+```
+
+稳定姿态阶段还会对上述 19 个关节施加全身代价，并保持双末端姿态；默认保持时间为 `1.0` 秒，可通过 launch 参数 `stable_posture_hold_sec` 调整。
 
 ## 1. 当前接口语义
 
@@ -31,7 +43,7 @@
 
 - `continue_return_to_initial_pose`
   - 类型：`std_srvs/srv/Trigger`
-  - 作用：在 `place_box_pose` 完成后，继续执行直立过渡 -> 任务初始位姿
+  - 作用：在 `place_box_pose` 完成后，继续执行直立过渡 -> 固定的预搬运稳定姿态
 
 注意：
 
@@ -81,7 +93,7 @@ ros2 launch ocs2_mobile_manipulator_ros grasp_waypoint_test.launch.py rviz:=fals
 2. 机器人自动执行抓取、抬起，并继续回到 `upright/home` 位姿
 3. 默认 `8` 秒后开始发布 `place_box_pose`
 4. 机器人自动执行释放、后撤，并停在等待位
-5. 你再调用 `continue_return_to_initial_pose` service，机器人继续回初始位
+5. 你再调用 `continue_return_to_initial_pose` service，机器人继续回固定的预搬运稳定姿态
 
 如果你想改成更长等待时间：
 
@@ -108,6 +120,13 @@ ros2 launch ocs2_mobile_manipulator_ros grasp_waypoint_planner.launch.py \
 ```bash
 ros2 launch ocs2_mobile_manipulator_ros grasp_waypoint_planner.launch.py \
   dt_post_release_retreat_to_initial:=1.0
+```
+
+如果需要让机器人在固定稳定姿态停留更久，可以改这个参数：
+
+```bash
+ros2 launch ocs2_mobile_manipulator_ros grasp_waypoint_planner.launch.py \
+  stable_posture_hold_sec:=1.5
 ```
 
 如果你想让机器人从等待位继续回初始位，调用这个 service：
@@ -232,7 +251,7 @@ ros2 topic pub --once /place_box_pose geometry_msgs/msg/PoseStamped "{header: {f
 ros2 service call /continue_return_to_initial_pose std_srvs/srv/Trigger "{}"
 ```
 
-调用后，机器人会执行直立过渡，然后回到任务初始双臂末端位姿。
+调用后，机器人会执行直立过渡，然后回到固定的预搬运稳定姿态；服务响应会打印目标的 19 个关节角，便于确认全身姿态。
 
 ### 5.4 如果你还想手动用旧 service 触发第一段
 

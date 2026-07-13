@@ -207,6 +207,10 @@ def generate_launch_description():
             default_value='1.0'
         ),
         launch.actions.DeclareLaunchArgument(
+            name='stable_posture_hold_sec',
+            default_value='1.0'
+        ),
+        launch.actions.DeclareLaunchArgument(
             name='carry_home_box_x',
             default_value='0.65'
         ),
@@ -371,6 +375,9 @@ def generate_launch_description():
                     'dt_post_release_retreat_to_initial': launch.substitutions.LaunchConfiguration(
                         'dt_post_release_retreat_to_initial'
                     )
+                },
+                {
+                    'stable_posture_hold_sec': launch.substitutions.LaunchConfiguration('stable_posture_hold_sec')
                 },
                 {
                     'carry_home_box_x': launch.substitutions.LaunchConfiguration('carry_home_box_x')
