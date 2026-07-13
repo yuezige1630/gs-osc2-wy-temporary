@@ -1,8 +1,14 @@
 #include <gtest/gtest.h>
 
+#include <boost/property_tree/info_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
+
 #include <ocs2_core/PreComputation.h>
+#include <ocs2_core/misc/LoadData.h>
 #include <ocs2_core/reference/TargetTrajectories.h>
 #include <ocs2_mobile_manipulator/cost/StablePostureCost.h>
+
+#include "ocs2_mobile_manipulator/package_path.h"
 
 using namespace ocs2;
 using namespace ocs2::mobile_manipulator;
@@ -60,3 +66,19 @@ TEST(StablePostureCost, ReturnsZeroWhenReferenceIsNotStable) {
   EXPECT_DOUBLE_EQ(cost.getValue(0.0, vector_t::Ones(19), vector_t::Zero(19), target, preComputation), 0.0);
 }
 
+TEST(StablePostureConfig, DefinesTheFixedNineteenJointPosture) {
+  const std::string taskFile = getPath() + "/config/gensong/task_dual_ee.info";
+  vector_t posture = vector_t::Zero(19);
+  loadData::loadEigenMatrix(taskFile, "initialState.arm", posture);
+
+  const vector_t expected = (vector_t(19) << 0.20, 0.35, 0.00, 0.00, 0.00, 0.00, 0.55, 0.00, -0.45, 0.00,
+                             0.00, 0.00, 0.00, -0.55, 0.00, 0.45, 0.00, 0.00, 0.00)
+                                .finished();
+  EXPECT_TRUE(posture.isApprox(expected, 1e-12));
+
+  boost::property_tree::ptree pt;
+  boost::property_tree::read_info(taskFile, pt);
+  EXPECT_DOUBLE_EQ(pt.get<double>("stablePosture.jointWeight"), 8.0);
+  EXPECT_DOUBLE_EQ(pt.get<double>("stablePosture.activationPositionTolerance"), 0.02);
+  EXPECT_DOUBLE_EQ(pt.get<double>("stablePosture.activationOrientationTolerance"), 0.0872664626);
+}

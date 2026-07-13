@@ -27,10 +27,13 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************************************************************/
 
+#include <cmath>
 #include <string>
 
 #include <pinocchio/fwd.hpp>  // forward declarations must be included first.
 
+#include <pinocchio/algorithm/frames.hpp>
+#include <pinocchio/algorithm/kinematics.hpp>
 #include <pinocchio/multibody/joint/joint-composite.hpp>
 #include <pinocchio/multibody/model.hpp>
 
@@ -49,11 +52,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ocs2_self_collision/SelfCollisionConstraint.h>
 #include <ocs2_self_collision/SelfCollisionConstraintCppAd.h>
 
+#include <Eigen/Geometry>
+
 #include "ocs2_mobile_manipulator/ManipulatorModelInfo.h"
 #include "ocs2_mobile_manipulator/MobileManipulatorPreComputation.h"
 #include "ocs2_mobile_manipulator/constraint/EndEffectorConstraint.h"
 #include "ocs2_mobile_manipulator/constraint/MobileManipulatorSelfCollisionConstraint.h"
 #include "ocs2_mobile_manipulator/cost/QuadraticInputCost.h"
+#include "ocs2_mobile_manipulator/cost/StablePostureCost.h"
 #include "ocs2_mobile_manipulator/dynamics/DefaultManipulatorDynamics.h"
 #include "ocs2_mobile_manipulator/dynamics/FloatingArmManipulatorDynamics.h"
 #include "ocs2_mobile_manipulator/dynamics/FullyActuatedFloatingArmManipulatorDynamics.h"
@@ -157,6 +163,62 @@ MobileManipulatorInterface::MobileManipulatorInterface(const std::string& taskFi
   initialState_.tail(armStateDim) = initialArmState;
 
   std::cerr << "Initial State:   " << initialState_.transpose() << std::endl;
+
+  bool activateStablePosture = false;
+  loadData::loadPtreeValue(pt, activateStablePosture, "stablePosture.activate", true);
+  if (activateStablePosture) {
+    if (manipulatorModelInfo_.eeFrames.size() != 2 || manipulatorModelInfo_.armDim != 19) {
+      throw std::invalid_argument(
+          "[MobileManipulatorInterface] stablePosture requires exactly two end effectors and 19 arm joints.");
+    }
+
+    double stableJointWeight = 0.0;
+    double stablePositionTolerance = 0.0;
+    double stableOrientationTolerance = 0.0;
+    loadData::loadPtreeValue(pt, stableJointWeight, "stablePosture.jointWeight", true);
+    loadData::loadPtreeValue(pt, stablePositionTolerance, "stablePosture.activationPositionTolerance", true);
+    loadData::loadPtreeValue(pt, stableOrientationTolerance, "stablePosture.activationOrientationTolerance", true);
+    if (!std::isfinite(stableJointWeight) || stableJointWeight <= 0.0 ||
+        !std::isfinite(stablePositionTolerance) || stablePositionTolerance <= 0.0 ||
+        !std::isfinite(stableOrientationTolerance) || stableOrientationTolerance <= 0.0) {
+      throw std::invalid_argument(
+          "[MobileManipulatorInterface] stablePosture weight and activation tolerances must be finite and positive.");
+    }
+
+    const auto& model = pinocchioInterfacePtr_->getModel();
+    for (int i = 0; i < initialState_.size(); ++i) {
+      const double lowerLimit = model.lowerPositionLimit(i);
+      const double upperLimit = model.upperPositionLimit(i);
+      if (!std::isfinite(initialState_(i)) ||
+          (std::isfinite(lowerLimit) && initialState_(i) < lowerLimit + 1e-3) ||
+          (std::isfinite(upperLimit) && initialState_(i) > upperLimit - 1e-3)) {
+        throw std::invalid_argument(
+            "[MobileManipulatorInterface] initialState.arm contains a non-finite value or violates a joint limit.");
+      }
+    }
+
+    const MobileManipulatorPinocchioMapping mapping(manipulatorModelInfo_);
+    const vector_t q = mapping.getPinocchioJointPosition(initialState_);
+    auto& data = pinocchioInterfacePtr_->getData();
+    pinocchio::forwardKinematics(model, data, q);
+    pinocchio::updateFramePlacements(model, data);
+
+    vector_t stableEndEffectorTarget = vector_t::Zero(14);
+    for (size_t i = 0; i < manipulatorModelInfo_.eeFrames.size(); ++i) {
+      const auto frameId = model.getBodyId(manipulatorModelInfo_.eeFrames[i]);
+      stableEndEffectorTarget.segment<3>(7 * i) = data.oMf[frameId].translation();
+      Eigen::Quaterniond orientation(data.oMf[frameId].rotation());
+      orientation.normalize();
+      stableEndEffectorTarget.segment<4>(7 * i + 3) = orientation.coeffs();
+    }
+
+    matrix_t stablePostureQ = matrix_t::Zero(manipulatorModelInfo_.stateDim, manipulatorModelInfo_.stateDim);
+    stablePostureQ.diagonal().tail(manipulatorModelInfo_.armDim).setConstant(stableJointWeight);
+    problem_.costPtr->add(
+        "stablePosture",
+        std::make_unique<StablePostureCost>(initialState_, stableEndEffectorTarget, std::move(stablePostureQ),
+                                             stablePositionTolerance, stableOrientationTolerance));
+  }
 
   // DDP-MPC settings
   ddpSettings_ = ddp::loadSettings(taskFile, "ddp");

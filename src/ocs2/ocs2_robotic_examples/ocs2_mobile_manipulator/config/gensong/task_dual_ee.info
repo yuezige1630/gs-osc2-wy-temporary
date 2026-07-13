@@ -129,12 +129,14 @@ rollout
 mpc
 {
   timeHorizon                     4.0   ; [s] 预测时间域长度
-  solutionTimeWindow              1.0   ; [s] 解的时间窗口 (限制策略传输大小,保证控制覆盖)
+  ; 双臂约束求解耗时可能超过 0.5 s；使用完整预测域避免策略覆盖不足警告
+  solutionTimeWindow              4.0   ; [s] 解的时间窗口
   coldStart                       false ; 是否冷启动 (true表示无初始策略时从头求解)
 
   debugPrint                      false ; 打印MPC调试信息
 
-  mpcDesiredFrequency             10     ; [Hz] MPC策略刷新频率 (给双臂末端约束求解留出足够时间)
+  ; 当前双臂模型单次求解耗时高于 10 Hz 的 0.1 s 周期，降低刷新频率避免策略更新滞后
+  mpcDesiredFrequency             5      ; [Hz] MPC策略刷新频率
   mrtDesiredFrequency             100    ; [Hz] MRT命令执行频率 (匹配joint_states 100Hz发布率)
 }
 
@@ -185,26 +187,35 @@ initialState
   ; 顺序: leg_low, leg_up, waist_low, waist_up, chest, 左臂7, 右臂7
   arm
   {
-    (0,0)   0.0
-    (1,0)   0.0
+    (0,0)   0.20
+    (1,0)   0.35
     (2,0)   0.0
     (3,0)   0.0
     (4,0)   0.0
     (5,0)   0.0
-    (6,0)   0.0
+    (6,0)   0.55
     (7,0)   0.0
-    (8,0)   0.0
+    (8,0)  -0.45
     (9,0)   0.0
     (10,0)  0.0
     (11,0)  0.0
     (12,0)  0.0
-    (13,0)  0.0
+    (13,0) -0.55
     (14,0)  0.0
-    (15,0)  0.0
+    (15,0)  0.45
     (16,0)  0.0
     (17,0)  0.0
     (18,0)  0.0
   }
+}
+
+; 固定预搬运稳态代价
+stablePosture
+{
+  activate                         true
+  jointWeight                      8.0
+  activationPositionTolerance      0.02
+  activationOrientationTolerance   0.0872664626
 }
 
 ; input costs
