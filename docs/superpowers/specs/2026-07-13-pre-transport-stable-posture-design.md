@@ -17,27 +17,27 @@
 
 | 关节 | 目标角度 |
 | --- | ---: |
-| `leg_low_joint` | 0.20 |
-| `leg_up_joint` | 0.35 |
+| `leg_low_joint` | 0.05 |
+| `leg_up_joint` | 0.10 |
 | `waist_low_joint` | 0.00 |
 | `waist_up_joint` | 0.00 |
 | `chest_joint` | 0.00 |
 | `arm1_left_joint` | 0.00 |
-| `arm2_left_joint` | 0.55 |
+| `arm2_left_joint` | 0.00 |
 | `arm3_left_joint` | 0.00 |
-| `arm4_left_joint` | -0.45 |
+| `arm4_left_joint` | 0.00 |
 | `wrist1_left_joint` | 0.00 |
 | `wrist2_left_joint` | 0.00 |
 | `wrist3_left_joint` | 0.00 |
 | `arm1_right_joint` | 0.00 |
-| `arm2_right_joint` | -0.55 |
+| `arm2_right_joint` | 0.00 |
 | `arm3_right_joint` | 0.00 |
-| `arm4_right_joint` | 0.45 |
+| `arm4_right_joint` | 0.00 |
 | `wrist1_right_joint` | 0.00 |
 | `wrist2_right_joint` | 0.00 |
 | `wrist3_right_joint` | 0.00 |
 
-该姿态保持左右对称，肘部有适度弯曲，主要关节远离已知限位；轮子和手指关节仍按现有 `removeJoints` 处理，不纳入 19 维稳态。
+该姿态保持左右对称，躯干和双臂归中，腿部仅离开下限少量以避免限位；URDF 正运动学显示双手高度约为 1.01 m。轮子和手指关节仍按现有 `removeJoints` 处理，不纳入 19 维稳态。
 
 ## 方案与选择
 

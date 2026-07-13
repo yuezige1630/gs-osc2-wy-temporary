@@ -71,8 +71,8 @@ TEST(StablePostureConfig, DefinesTheFixedNineteenJointPosture) {
   vector_t posture = vector_t::Zero(19);
   loadData::loadEigenMatrix(taskFile, "initialState.arm", posture);
 
-  const vector_t expected = (vector_t(19) << 0.20, 0.35, 0.00, 0.00, 0.00, 0.00, 0.55, 0.00, -0.45, 0.00,
-                             0.00, 0.00, 0.00, -0.55, 0.00, 0.45, 0.00, 0.00, 0.00)
+  const vector_t expected = (vector_t(19) << 0.05, 0.10, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
+                             0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00)
                                 .finished();
   EXPECT_TRUE(posture.isApprox(expected, 1e-12));
 
@@ -81,4 +81,5 @@ TEST(StablePostureConfig, DefinesTheFixedNineteenJointPosture) {
   EXPECT_DOUBLE_EQ(pt.get<double>("stablePosture.jointWeight"), 8.0);
   EXPECT_DOUBLE_EQ(pt.get<double>("stablePosture.activationPositionTolerance"), 0.02);
   EXPECT_DOUBLE_EQ(pt.get<double>("stablePosture.activationOrientationTolerance"), 0.0872664626);
+  EXPECT_DOUBLE_EQ(pt.get<double>("mpc.mpcDesiredFrequency"), 4.0);
 }

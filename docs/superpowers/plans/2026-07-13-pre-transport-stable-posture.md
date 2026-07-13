@@ -177,9 +177,9 @@ Expected: the new test fails because constructor validation is not yet present.
 Change `task_dual_ee.info` so `initialState.arm` contains, in order:
 
 ```text
-0.20, 0.35, 0.00, 0.00, 0.00,
-0.00, 0.55, 0.00, -0.45, 0.00, 0.00, 0.00,
-0.00, -0.55, 0.00, 0.45, 0.00, 0.00, 0.00
+0.05, 0.10, 0.00, 0.00, 0.00,
+0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
+0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00
 ```
 
 Add:

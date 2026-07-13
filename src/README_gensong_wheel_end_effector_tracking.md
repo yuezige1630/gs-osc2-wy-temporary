@@ -15,12 +15,14 @@
 当前固定姿态单位为弧度，关节顺序与模型一致：
 
 ```text
-[leg_low=0.20, leg_up=0.35, waist_low=0.00, waist_up=0.00, chest=0.00,
- arm1_left=0.00, arm2_left=0.55, arm3_left=0.00, arm4_left=-0.45,
+[leg_low=0.05, leg_up=0.10, waist_low=0.00, waist_up=0.00, chest=0.00,
+ arm1_left=0.00, arm2_left=0.00, arm3_left=0.00, arm4_left=0.00,
  wrist1_left=0.00, wrist2_left=0.00, wrist3_left=0.00,
- arm1_right=0.00, arm2_right=-0.55, arm3_right=0.00, arm4_right=0.45,
+ arm1_right=0.00, arm2_right=0.00, arm3_right=0.00, arm4_right=0.00,
  wrist1_right=0.00, wrist2_right=0.00, wrist3_right=0.00]
 ```
+
+该姿态经过 URDF 正运动学核对，双手高度约为 `1.01 m`，高于桌面 `0.80 m`，避免回程时把双手压回桌面附近。
 
 稳定姿态阶段还会对上述 19 个关节施加全身代价，并保持双末端姿态；默认保持时间为 `1.0` 秒，可通过 launch 参数 `stable_posture_hold_sec` 调整。
 
