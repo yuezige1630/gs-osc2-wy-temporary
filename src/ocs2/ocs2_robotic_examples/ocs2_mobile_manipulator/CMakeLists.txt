@@ -11,26 +11,9 @@ find_package(ocs2_mpc REQUIRED)
 find_package(ocs2_robotic_tools REQUIRED)
 find_package(ocs2_robotic_assets REQUIRED)
 
-# Pinocchio must come from robotpkg/openrobots on this workspace. ROS Jazzy also ships a
-# different Pinocchio build under /opt/ros/jazzy, and mixing the two headers breaks macros.
-set(_robotpkg_pinocchio_dir /opt/openrobots/lib/cmake/pinocchio)
-if(EXISTS "${_robotpkg_pinocchio_dir}/pinocchioConfig.cmake")
-  set(pinocchio_DIR "${_robotpkg_pinocchio_dir}" CACHE PATH "Pinocchio config directory" FORCE)
-endif()
-
-# robotpkg Pinocchio depends on urdfdom, and Jazzy installs its config in a non-standard prefix.
-set(_ros_urdfdom_dir /opt/ros/jazzy/lib/x86_64-linux-gnu/urdfdom/cmake)
-if(EXISTS "${_ros_urdfdom_dir}/urdfdom-config.cmake")
-  set(urdfdom_DIR "${_ros_urdfdom_dir}" CACHE PATH "urdfdom config directory" FORCE)
-endif()
-
-# Use the system Boost package instead of the conda one, which lacks the components needed by
-# Pinocchio's config package.
-set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
-set(Boost_USE_DEBUG_RUNTIME OFF)
-set(Boost_USE_STATIC_LIBS OFF)
-set(Boost_DIR /usr/lib/x86_64-linux-gnu/cmake/Boost-1.83.0 CACHE PATH "Boost config directory" FORCE)
-set(tinyxml2_DIR /usr/lib/x86_64-linux-gnu/cmake/tinyxml2 CACHE PATH "tinyxml2 config directory" FORCE)
+find_package(tinyxml2_vendor REQUIRED)
+list(INSERT CMAKE_MODULE_PATH 0 "${tinyxml2_vendor_DIR}/Modules")
+find_package(TinyXML2 REQUIRED)
 
 find_package(ocs2_pinocchio_interface REQUIRED)
 find_package(ocs2_self_collision REQUIRED)

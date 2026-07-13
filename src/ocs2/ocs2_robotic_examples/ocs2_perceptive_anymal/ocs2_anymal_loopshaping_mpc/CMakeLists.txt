@@ -4,6 +4,12 @@ project(ocs2_anymal_loopshaping_mpc)
 
 ## Find ament_cmake macros and libraries
 find_package(ament_cmake REQUIRED)
+
+# Humble urdfdom non-standard lib path (skip on Jazzy+)
+if(EXISTS "/opt/ros/humble/lib/x86_64-linux-gnu")
+  link_directories(/opt/ros/humble/lib/x86_64-linux-gnu)
+endif()
+
 find_package(convex_plane_decomposition REQUIRED)
 find_package(convex_plane_decomposition_ros REQUIRED)
 find_package(grid_map_ros REQUIRED)

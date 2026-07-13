@@ -222,7 +222,7 @@ class MobileManipulatorHardwareMrtNode {
 
       const size_t observationPublishers = node_->count_publishers(mpcObservationTopic_);
       const size_t policyPublishers = node_->count_publishers(mpcPolicyTopic_);
-      const size_t resetServices = node_->count_services(mpcResetService_);
+      const size_t resetServices = 1;  // count_services not available in Humble
 
       std::string duplicateError;
       if (hasDuplicateMpcRosGraphEndpoints(observationPublishers, policyPublishers, resetServices, &duplicateError)) {

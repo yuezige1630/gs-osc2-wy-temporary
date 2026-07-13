@@ -40,7 +40,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <pinocchio/parsers/urdf.hpp>
 
 #include <urdf_parser/urdf_parser.h>
+#ifdef OCS2_URDFDOM_HAS_TINYXML2
 #include <tinyxml2.h>
+using XmlDocument = tinyxml2::XMLDocument;
+using XmlPrinter = tinyxml2::XMLPrinter;
+#else
+#include <tinyxml.h>
+using XmlDocument = TiXmlDocument;
+using XmlPrinter = TiXmlPrinter;
+#endif
 
 namespace ocs2 {
 
@@ -96,9 +104,9 @@ void PinocchioGeometryInterface::buildGeomFromPinocchioInterface(const Pinocchio
 
   // TODO: Replace with pinocchio function that uses the ModelInterface directly.
   // Pinocchio still expects a URDF stream here, so export the URDFDOM model to a tinyxml2 document first.
-  const std::unique_ptr<tinyxml2::XMLDocument> urdfAsXml(urdf::exportURDF(*pinocchioInterface.getUrdfModelPtr()));
-  tinyxml2::XMLPrinter printer;
-  urdfAsXml->Print(&printer);
+  const std::unique_ptr<XmlDocument> urdfAsXml(urdf::exportURDF(*pinocchioInterface.getUrdfModelPtr()));
+  XmlPrinter printer;
+  urdfAsXml->Accept(&printer);
   std::stringstream urdfAsStringStream;
   urdfAsStringStream << printer.CStr();
 

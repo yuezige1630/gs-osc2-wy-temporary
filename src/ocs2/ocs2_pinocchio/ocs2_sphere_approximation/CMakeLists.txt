@@ -10,7 +10,19 @@ find_package(ocs2_robotic_tools REQUIRED)
 find_package(ocs2_pinocchio_interface REQUIRED)
 find_package(ocs2_robotic_assets REQUIRED)
 find_package(pinocchio REQUIRED)
-find_package(tinyxml2 REQUIRED)
+find_package(tinyxml2_vendor REQUIRED)
+list(INSERT CMAKE_MODULE_PATH 0 "${tinyxml2_vendor_DIR}/Modules")
+find_package(TinyXML2 REQUIRED)
+
+# Detect whether urdfdom uses tinyxml2 (Jazzy+) or tinyxml (Humble).
+find_path(OCS2_TINYXML_INCLUDE_DIR tinyxml.h)
+if(OCS2_TINYXML_INCLUDE_DIR)
+  message(STATUS "tinyxml.h found (Humble/legacy urdfdom) — using tinyxml API")
+else()
+  add_compile_definitions(OCS2_URDFDOM_HAS_TINYXML2)
+  message(STATUS "tinyxml.h not found (Jazzy+ urdfdom) — defining OCS2_URDFDOM_HAS_TINYXML2")
+endif()
+
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 find_package(Boost REQUIRED COMPONENTS system filesystem log_setup log)
 
@@ -71,7 +83,6 @@ ament_export_dependencies(
   Eigen3
   Boost
   pinocchio
-  tinyxml2
 )
 
 ############

@@ -3,6 +3,12 @@ set(CMAKE_CXX_STANDARD 17)
 project(ocs2_anymal_mpc)
 
 find_package(ament_cmake REQUIRED)
+
+# Humble urdfdom non-standard lib path (skip on Jazzy+)
+if(EXISTS "/opt/ros/humble/lib/x86_64-linux-gnu")
+  link_directories(/opt/ros/humble/lib/x86_64-linux-gnu)
+endif()
+
 find_package(rclcpp REQUIRED)
 find_package(ocs2_anymal_models REQUIRED)
 find_package(ocs2_quadruped_interface REQUIRED) 
