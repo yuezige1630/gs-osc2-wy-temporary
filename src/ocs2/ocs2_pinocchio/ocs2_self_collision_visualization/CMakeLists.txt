@@ -18,6 +18,11 @@ find_package(visualization_msgs REQUIRED)
 
 find_package(pinocchio REQUIRED)
 find_package(hpp-fcl REQUIRED)
+find_package(tinyxml2_vendor QUIET)
+if(tinyxml2_vendor_FOUND)
+  list(INSERT CMAKE_MODULE_PATH 0 "${tinyxml2_vendor_DIR}/Modules")
+  find_package(TinyXML2 REQUIRED)
+endif()
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 find_package(Boost REQUIRED COMPONENTS system filesystem log_setup log)
 

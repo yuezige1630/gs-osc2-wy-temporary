@@ -29,6 +29,7 @@ find_package(sensor_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(rclcpp REQUIRED) 
 find_package(PCL REQUIRED)
+find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 
 find_package(Boost REQUIRED COMPONENTS
   system

@@ -5,6 +5,11 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 find_package(ament_cmake REQUIRED)
+
+# Humble urdfdom non-standard lib path (skip on Jazzy+)
+if(EXISTS "/opt/ros/humble/lib/x86_64-linux-gnu")
+  link_directories(/opt/ros/humble/lib/x86_64-linux-gnu)
+endif()
 find_package(ament_index_cpp REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(tf2_ros REQUIRED)

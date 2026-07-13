@@ -19,6 +19,11 @@ set(dependencies
   segmented_planes_terrain_model
 )
 find_package(ament_cmake REQUIRED)
+
+# Humble urdfdom non-standard lib path (skip on Jazzy+)
+if(EXISTS "/opt/ros/humble/lib/x86_64-linux-gnu")
+  link_directories(/opt/ros/humble/lib/x86_64-linux-gnu)
+endif()
 find_package(ocs2_core REQUIRED)
 find_package(ocs2_ddp REQUIRED)
 find_package(ocs2_mpc REQUIRED) 
