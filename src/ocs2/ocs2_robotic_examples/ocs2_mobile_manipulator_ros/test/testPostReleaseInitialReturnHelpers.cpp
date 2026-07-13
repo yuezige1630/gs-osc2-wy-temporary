@@ -26,18 +26,24 @@ TEST(PostReleaseInitialReturnHelpers, BuildsThreeStageContinueTrajectory) {
   taskStartPoses[1].position = Eigen::Vector3d(0.4, -0.1, 1.2);
   taskStartPoses[1].orientation = Eigen::Quaterniond::Identity();
 
-  const auto trajectory = buildPostReleaseInitialReturnTrajectory(currentPoses, retreatPoses, taskStartPoses, 1.2, 0.5);
+  const auto trajectory =
+      buildPostReleaseInitialReturnTrajectory(currentPoses, retreatPoses, taskStartPoses, 1.2, 0.5, 0.8);
 
-  ASSERT_EQ(trajectory.armWaypoints[0].size(), 3u);
-  ASSERT_EQ(trajectory.armWaypoints[1].size(), 3u);
-  ASSERT_EQ(trajectory.timeOffsets.size(), 3u);
+  ASSERT_EQ(trajectory.armWaypoints[0].size(), 4u);
+  ASSERT_EQ(trajectory.armWaypoints[1].size(), 4u);
+  ASSERT_EQ(trajectory.timeOffsets.size(), 4u);
   EXPECT_DOUBLE_EQ(trajectory.timeOffsets[0], 0.0);
   EXPECT_DOUBLE_EQ(trajectory.timeOffsets[1], 0.3);
   EXPECT_DOUBLE_EQ(trajectory.timeOffsets[2], 0.6);
+  EXPECT_DOUBLE_EQ(trajectory.timeOffsets[3], 1.0);
 
   EXPECT_TRUE(trajectory.armWaypoints[0][0].position.isApprox(currentPoses[0].position));
   EXPECT_TRUE(trajectory.armWaypoints[0][1].position.isApprox(retreatPoses[0].position));
   EXPECT_TRUE(trajectory.armWaypoints[0][2].position.isApprox(taskStartPoses[0].position));
+  EXPECT_TRUE(trajectory.armWaypoints[0][3].position.isApprox(taskStartPoses[0].position));
+  for (size_t i = 1; i < trajectory.timeOffsets.size(); ++i) {
+    EXPECT_LT(trajectory.timeOffsets[i - 1], trajectory.timeOffsets[i]);
+  }
   EXPECT_NEAR(trajectory.armWaypoints[0][1].orientation.x(), 0.0, 1e-12);
   EXPECT_NEAR(trajectory.armWaypoints[0][1].orientation.y(), 0.0, 1e-12);
   EXPECT_NEAR(trajectory.armWaypoints[0][1].orientation.z(), 0.0, 1e-12);
