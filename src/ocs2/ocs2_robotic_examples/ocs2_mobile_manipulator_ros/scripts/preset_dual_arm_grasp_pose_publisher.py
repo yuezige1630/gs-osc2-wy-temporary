@@ -105,7 +105,7 @@ class PresetDualArmGraspPosePublisher(Node):
         self.declare_parameter("box_size_x", 0.1978)
         self.declare_parameter("box_size_y", 0.2966)
         self.declare_parameter("box_size_z", 0.1464)
-        self.declare_parameter("grasp_edge_inset_y", 0.0)
+        self.declare_parameter("grasp_edge_inset_y", 0.01)
         self.declare_parameter("grasp_x_offset", 0.0)
         self.declare_parameter("grasp_z_offset", 0.0)
         self.declare_parameter("grasp_frame_rpy.roll", 0.0)

@@ -21,6 +21,14 @@ inline double computeLiftBoxCenterZ(double boxCenterZ, double liftDistance, doub
   return std::max(boxCenterZ + liftDistance, std::max(minTableClearance, boxCenterZ + minBoxClearance));
 }
 
+// Height for the collision-free transit segment before the hands descend to
+// the box sides.  boxClearance is measured above the box top, while
+// tableClearance is measured above the table top.
+inline double computeSafeApproachHeight(double boxCenterZ, double boxSizeZ, double tableTopZ,
+                                        double boxClearance, double tableClearance) {
+  return std::max(boxCenterZ + 0.5 * boxSizeZ + boxClearance, tableTopZ + tableClearance);
+}
+
 inline std::vector<double> makeGraspLiftTimeOffsets(double currentToVia, double viaToPregrasp,
                                                      double pregraspToGrasp, double holdDuration,
                                                      double graspToLift, double timeScale) {

@@ -105,11 +105,6 @@
     <mesh name="scene_table" file="../mjcf/table-2000x1000x750.obj"/>
   </asset>
 
-  <equality>
-    <!-- 说明：mocap_weld 是一个虚拟的关节，用于将 mocap 节点与 chest_link 节点连接起来，无相对运动，全部锁定在初始位置 -->
-    <!-- <weld name="mocap_weld" body1="mocap" body2="chest_link" /> -->
-  </equality>
-
   <actuator>
     <motor name="motor_wheel_drive_left_joint" joint="wheel_drive_left_joint" ctrllimited="true" ctrlrange="-169 169" gear="1"/>
     <motor name="motor_wheel_drive_right_joint" joint="wheel_drive_right_joint" ctrllimited="true" ctrlrange="-169 169" gear="1"/>
@@ -247,7 +242,7 @@
                               </body>
 
                               <geom name="handboard_left" type="mesh" mesh="handboard_left" pos="0.1185 -0.0675 -0.04" rgba="1 1 1 1" class="visual_mesh"/>
-                              <geom name="handboard_left_collision" type="mesh" mesh="handboard_left" pos="0.1185 -0.0675 -0.04" contype="1" conaffinity="1" group="5" friction="2.0 0.1 0.01" condim="3" margin="0.005" rgba="0 1 0 0.18"/>
+                              <geom name="handboard_left_collision" type="mesh" mesh="handboard_left" pos="0.1185 -0.0675 -0.04" contype="1" conaffinity="1" group="5" friction="5.0 0.5 0.05" condim="3" margin="0.008" rgba="0 1 0 0.18"/>
                               
                               
                               
@@ -296,7 +291,7 @@
                               </body>
 
                               <geom name="handboard_right" type="mesh" mesh="handboard_right" pos="0.1185 0.0675 -0.04" rgba="1 0.6 0 1" class="visual_mesh"/>
-                              <geom name="handboard_right_collision" type="mesh" mesh="handboard_right" pos="0.1185 0.0675 -0.04" contype="1" conaffinity="1" group="5" friction="2.0 0.1 0.01" condim="3" margin="0.005" rgba="0 1 0 0.18"/>
+                              <geom name="handboard_right_collision" type="mesh" mesh="handboard_right" pos="0.1185 0.0675 -0.04" contype="1" conaffinity="1" group="5" friction="5.0 0.5 0.05" condim="3" margin="0.008" rgba="0 1 0 0.18"/>
                               
                               
                               
@@ -338,20 +333,32 @@
       <geom class="trajectory_point" name="traj_point_18" pos="0 0 0" rgba="0 1 0.2 0.3"/>
       <geom class="trajectory_point" name="traj_point_19" pos="0 0 0" rgba="0 0.8 1 0.3"/>
     </body> -->
-      <body name="scene_box" pos="0.8 0 0.81">
+      <body name="scene_box" pos="0.8 0 0.91">
         <joint name="scene_box_freejoint" type="free" damping="2.0"/>
-        <!-- Trial: use the visual mesh itself for collision. -->
-        <!-- The mesh is authored standing on its local Z axis. Rotate only the
-             geometry so the freejoint pose remains the ROS box_pose frame. -->
+        <!-- The visual and collision geometry use the same OBJ, center, and
+             orientation so contacts follow the textured box and its slots. -->
         <geom name="scene_box_visual" type="mesh" mesh="scene_box" quat="0.70710678 0.70710678 0 0"
-              rgba="0.08 0.25 0.85 1" contype="1" conaffinity="1" mass="3.0" friction="2.0 0.1 0.01"
-              condim="3" margin="0.01" solref="0.003 1" solimp="0.95 0.99 0.001"/>
+              rgba="0.08 0.25 0.85 1" contype="0" conaffinity="0" mass="0"/>
+        <!-- The real mesh includes the side slots used by the handboards. -->
+        <geom name="scene_box_collision" type="mesh" mesh="scene_box" quat="0.70710678 0.70710678 0 0"
+              contype="1" conaffinity="1" mass="3.0"
+              friction="5.0 0.5 0.05" condim="3" margin="0.003"
+              solref="0.003 1" solimp="0.95 0.99 0.001" rgba="0 1 0 0.18"/>
+        <!-- Slot upper lips: the handboards enter between the box side rails
+             and lift the free body by contact with these fixed-to-the-box
+             surfaces. They add no mass and do not prescribe box motion. -->
+        <geom name="scene_box_slot_left_lip" type="box" pos="0 0.345 0.045" size="0.08 0.015 0.01"
+              contype="1" conaffinity="1" mass="0" friction="5.0 0.5 0.05" condim="3" margin="0.001"
+              solref="0.003 1" solimp="0.95 0.99 0.001" rgba="0 1 0 0.18"/>
+        <geom name="scene_box_slot_right_lip" type="box" pos="0 -0.345 0.045" size="0.08 0.015 0.01"
+              contype="1" conaffinity="1" mass="0" friction="5.0 0.5 0.05" condim="3" margin="0.001"
+              solref="0.003 1" solimp="0.95 0.99 0.001" rgba="0 1 0 0.18"/>
       </body>
-      <body name="scene_table" pos="1.5 -1.0 0" euler="0 1.5708 1.5708">
+      <body name="scene_table" pos="1.5 -1.0 0.1" euler="0 1.5708 1.5708">
         <geom name="scene_table_visual" type="mesh" mesh="scene_table" rgba="0.35 0.20 0.10 1" contype="0" conaffinity="0" mass="0"/>
         <!-- Use primitives for contacts. The original table mesh is kept visual-only because
              its concave/open geometry produces unstable convex-hull contacts in MuJoCo. -->
-        <geom name="scene_table_top_collision" type="box" pos="1.0 0.725 -0.5" size="1.0 0.05 0.5"
+        <geom name="scene_table_top_collision" type="box" pos="1.0 0.7 -0.5" size="1.0 0.05 0.5"
               contype="1" conaffinity="1" friction="1.0 0.1 0.01" condim="3" margin="0.005"
               solref="0.003 1" solimp="0.95 0.99 0.001" rgba="1 0.55 0 0.12"/>
         <geom name="scene_table_leg_front_left_collision" type="box" pos="0.1 0.325 -0.9" size="0.05 0.325 0.05"

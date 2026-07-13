@@ -120,7 +120,7 @@ def generate_launch_description():
         ),
         launch.actions.DeclareLaunchArgument(
             name='box_center_qx',
-            default_value='0.0'
+            default_value='0.01'
         ),
         launch.actions.DeclareLaunchArgument(
             name='box_center_qy',
@@ -175,8 +175,24 @@ def generate_launch_description():
             default_value='0.12'
         ),
         launch.actions.DeclareLaunchArgument(
+            name='approach_distance',
+            default_value='0.20'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='table_top_z',
+            default_value='0.80'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='table_clearance',
+            default_value='0.12'
+        ),
+        launch.actions.DeclareLaunchArgument(
+            name='approach_box_clearance',
+            default_value='0.10'
+        ),
+        launch.actions.DeclareLaunchArgument(
             name='grasp_edge_inset_y',
-            default_value='0.02'
+            default_value='0.01'
         ),
         launch.actions.DeclareLaunchArgument(
             name='grasp_x_offset',
@@ -349,6 +365,18 @@ def generate_launch_description():
                 },
                 {
                     'box_size_z': launch.substitutions.LaunchConfiguration('box_size_z')
+                },
+                {
+                    'approach_distance': launch.substitutions.LaunchConfiguration('approach_distance')
+                },
+                {
+                    'table_top_z': launch.substitutions.LaunchConfiguration('table_top_z')
+                },
+                {
+                    'table_clearance': launch.substitutions.LaunchConfiguration('table_clearance')
+                },
+                {
+                    'approach_box_clearance': launch.substitutions.LaunchConfiguration('approach_box_clearance')
                 },
                 {
                     'grasp_edge_inset_y': launch.substitutions.LaunchConfiguration('grasp_edge_inset_y')

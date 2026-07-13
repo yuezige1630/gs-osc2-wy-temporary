@@ -18,6 +18,13 @@ TEST(GraspLiftPoseHelpers, LiftHonorsBoxAndTableClearance) {
   EXPECT_DOUBLE_EQ(computeLiftBoxCenterZ(0.10, 0.01, 0.20, 0.15), 0.30);
 }
 
+TEST(GraspLiftPoseHelpers, ApproachHeightClearsTableAndBoxTop) {
+  // The handboards must pass above both the table and the box before moving
+  // laterally to the slot.  The larger of the two clearances is authoritative.
+  EXPECT_DOUBLE_EQ(computeSafeApproachHeight(0.91, 0.12, 0.80, 0.10, 0.12), 1.07);
+  EXPECT_DOUBLE_EQ(computeSafeApproachHeight(0.60, 0.12, 0.80, 0.10, 0.12), 0.92);
+}
+
 TEST(GraspLiftPoseHelpers, BuildsSixStageTrajectoryThroughContactAndLift) {
   const auto offsets = makeGraspLiftTimeOffsets(1.0, 1.0, 0.8, 2.0, 1.0, 4.0);
 
