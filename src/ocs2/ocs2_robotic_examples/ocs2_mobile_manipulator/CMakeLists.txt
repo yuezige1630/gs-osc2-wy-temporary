@@ -151,6 +151,7 @@ if(BUILD_TESTING)
 
   add_ocs2_test(SelfCollisionTest test/testSelfCollision.cpp)
   add_ocs2_test(EndEffectorConstraintTest test/testEndEffectorConstraint.cpp)
+  add_ocs2_test(StablePostureCostTest test/testStablePostureCost.cpp)
   add_ocs2_test(DummyMobileManipulatorTest test/testDummyMobileManipulator.cpp)
   set_tests_properties(DummyMobileManipulatorTest PROPERTIES TIMEOUT 600)
 endif()
