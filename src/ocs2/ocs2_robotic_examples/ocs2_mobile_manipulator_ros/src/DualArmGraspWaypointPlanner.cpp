@@ -99,7 +99,7 @@ class DualArmGraspWaypointPlanner final {
 
     approachDistance_ = node_->declare_parameter<double>("approach_distance", 0.20);
     retreatDistance_ = node_->declare_parameter<double>("retreat_distance", 0.15);
-    liftDistance_ = node_->declare_parameter<double>("lift_distance", 0.15);
+    liftDistance_ = node_->declare_parameter<double>("lift_distance", 0.30);
     viaExtraHeight_ = node_->declare_parameter<double>("via_extra_height", 0.10);
     minBoxClearance_ = node_->declare_parameter<double>("min_box_clearance", 0.05);
     minTableClearance_ = node_->declare_parameter<double>("min_table_clearance", 0.05);
@@ -110,6 +110,8 @@ class DualArmGraspWaypointPlanner final {
 
     dtCurrentToVia_ = node_->declare_parameter<double>("dt_current_to_via", 1.0);
     dtViaToPregrasp_ = node_->declare_parameter<double>("dt_via_to_pregrasp", 1.0);
+    dtYExpandedSettle_ = node_->declare_parameter<double>("y_expanded_settle_sec", 1.0);
+    dtViaSettle_ = node_->declare_parameter<double>("via_settle_sec", 1.0);
     dtPregraspToGrasp_ = node_->declare_parameter<double>("dt_pregrasp_to_grasp", 0.8);
     graspHoldSec_ = node_->declare_parameter<double>("grasp_hold_sec", 0.5);
     dtGraspToRetreat_ = node_->declare_parameter<double>("dt_grasp_to_retreat", 0.8);
@@ -135,8 +137,8 @@ class DualArmGraspWaypointPlanner final {
     carryHomeFrontClearance_ = node_->declare_parameter<double>("carry_home_front_clearance", 0.05);
     carryHomeTableClearance_ = node_->declare_parameter<double>("carry_home_table_clearance", minTableClearance_);
     prePlaceHeight_ = node_->declare_parameter<double>("pre_place_height", 0.10);
-    postReleaseRetreatDistance_ = node_->declare_parameter<double>("post_release_retreat_distance", 0.15);
-    postReleaseRetreatHeight_ = node_->declare_parameter<double>("post_release_retreat_height", 0.05);
+    postReleaseRetreatDistance_ = node_->declare_parameter<double>("post_release_retreat_distance", 0.10);
+    postReleaseRetreatHeight_ = node_->declare_parameter<double>("post_release_retreat_height", 0.10);
     transportOffset_.x() = node_->declare_parameter<double>("transport_offset_x", 0.0);
     transportOffset_.y() = node_->declare_parameter<double>("transport_offset_y", 0.0);
     transportOffset_.z() = node_->declare_parameter<double>("transport_offset_z", 0.0);
@@ -156,6 +158,11 @@ class DualArmGraspWaypointPlanner final {
     }
     if (!std::isfinite(graspHoldSec_) || graspHoldSec_ < 0.0) {
       throw std::runtime_error("[DualArmGraspWaypointPlanner] grasp_hold_sec must be finite and non-negative.");
+    }
+    if (!std::isfinite(dtYExpandedSettle_) || dtYExpandedSettle_ < 0.0 || !std::isfinite(dtViaSettle_) ||
+        dtViaSettle_ < 0.0) {
+      throw std::runtime_error(
+          "[DualArmGraspWaypointPlanner] y_expanded_settle_sec and via_settle_sec must be finite and non-negative.");
     }
     if (!std::isfinite(trajectoryTimeScale_) || trajectoryTimeScale_ <= 0.0) {
       throw std::runtime_error("[DualArmGraspWaypointPlanner] trajectory_time_scale must be finite and positive.");
@@ -670,15 +677,16 @@ class DualArmGraspWaypointPlanner final {
       PoseData clearanceLift = currentPoses[armIndex];
       clearanceLift.position.z() = std::max(currentPoses[armIndex].position.z(), safeTransitHeight);
 
-      PoseData via = preGrasp;
-      via.position.z() = std::max({currentPoses[armIndex].position.z(), preGrasp.position.z(), safeTransitHeight});
-
-      // Expand both arms outside the box footprint before descending.  This
-      // keeps the approach from crossing through the box center when the
-      // pre-grasp pose is reached from the high-clearance transit plane.
+      // Expand both arms outside the box footprint before descending.
       const double yExpansion = 0.5 * boxSizeY_ + approachBoxClearance_;
-      PoseData yExpanded = via;
-      yExpanded.position.y() = snapshot.boxPose.position.y() + (armIndex == 0 ? yExpansion : -yExpansion);
+      PoseData yExpanded = preGrasp;
+      yExpanded.position.z() = std::max({currentPoses[armIndex].position.z(), preGrasp.position.z(), safeTransitHeight});
+      yExpanded.position.y() = currentPoses[armIndex].position.y() + (armIndex == 0 ? yExpansion : -yExpansion);
+
+      // Descend while keeping the end-effector at the safe expanded y.  Only
+      // after reaching the pre-grasp height do we move horizontally inward.
+      PoseData via = yExpanded;
+      via.position.z() = preGrasp.position.z();
 
       PoseData hold = graspPose;
       PoseData lift;
@@ -718,16 +726,19 @@ class DualArmGraspWaypointPlanner final {
       if (carryHomeAfterGrasp_) {
         const PoseData carryUpright = composeEndEffectorPose(carrySession.carryUprightBoxPose, armIndex, carrySession);
         const PoseData carryHome = composeEndEffectorPose(carryHomeBoxPose, armIndex, carrySession);
-        armWaypoints[armIndex] = {currentPoses[armIndex], clearanceLift, yExpanded, via, preGrasp, graspPose, hold,
+        armWaypoints[armIndex] = {currentPoses[armIndex], clearanceLift, yExpanded, yExpanded, via, via, preGrasp,
+                                  graspPose, hold,
                                   liftSubSteps[0], liftSubSteps[1], liftSubSteps[2],
                                   lift, carryUpright, carryHome};
       } else {
-        armWaypoints[armIndex] = {currentPoses[armIndex], clearanceLift, yExpanded, via, preGrasp, graspPose, hold,
+        armWaypoints[armIndex] = {currentPoses[armIndex], clearanceLift, yExpanded, yExpanded, via, via, preGrasp,
+                                  graspPose, hold,
                                   liftSubSteps[0], liftSubSteps[1], liftSubSteps[2], lift};
       }
 
-      if (via.position.z() < safeTransitHeight - 1e-9 || yExpanded.position.z() < safeTransitHeight - 1e-9 ||
+      if (yExpanded.position.z() < safeTransitHeight - 1e-9 ||
           clearanceLift.position.z() < safeTransitHeight - 1e-9 ||
+          via.position.z() < minTableClearance_ - 1e-9 ||
           lift.position.z() < minTableClearance_ - 1e-9) {
         errorMessage = "Generated via/lift waypoint violates box or table clearance.";
         return false;
@@ -740,7 +751,10 @@ class DualArmGraspWaypointPlanner final {
 
     const double dtCurrentToClearance = 0.5 * dtCurrentToVia_;
     const double dtCurrentToYExpanded = 0.75 * dtCurrentToVia_;
-    const double contactTime = dtCurrentToVia_ + dtViaToPregrasp_ + dtPregraspToGrasp_;
+    const double dtVia = dtCurrentToVia_ + dtYExpandedSettle_;
+    const double dtViaHoldEnd = dtVia + dtViaSettle_;
+    const double dtPreGrasp = dtViaHoldEnd + dtViaToPregrasp_;
+    const double contactTime = dtPreGrasp + dtPregraspToGrasp_;
     const double holdEndTime = contactTime + graspHoldSec_;
     const double liftEndTime = holdEndTime + dtRetreatToLift_;
     const int numLiftSubSteps = 3;
@@ -749,8 +763,10 @@ class DualArmGraspWaypointPlanner final {
       timeOffsets = {0.0,
                      scaledTime(dtCurrentToClearance),
                      scaledTime(dtCurrentToYExpanded),
-                     scaledTime(dtCurrentToVia_),
-                     scaledTime(dtCurrentToVia_ + dtViaToPregrasp_),
+                     scaledTime(dtCurrentToYExpanded + dtYExpandedSettle_),
+                     scaledTime(dtVia),
+                     scaledTime(dtViaHoldEnd),
+                     scaledTime(dtPreGrasp),
                      scaledTime(contactTime),
                      scaledTime(holdEndTime),
                      scaledTime(holdEndTime + liftStepDuration),
@@ -763,8 +779,10 @@ class DualArmGraspWaypointPlanner final {
       timeOffsets = {0.0,
                      scaledTime(dtCurrentToClearance),
                      scaledTime(dtCurrentToYExpanded),
-                     scaledTime(dtCurrentToVia_),
-                     scaledTime(dtCurrentToVia_ + dtViaToPregrasp_),
+                     scaledTime(dtCurrentToYExpanded + dtYExpandedSettle_),
+                     scaledTime(dtVia),
+                     scaledTime(dtViaHoldEnd),
+                     scaledTime(dtPreGrasp),
                      scaledTime(contactTime),
                      scaledTime(holdEndTime),
                      scaledTime(holdEndTime + liftStepDuration),
@@ -1236,7 +1254,7 @@ class DualArmGraspWaypointPlanner final {
 
   double approachDistance_ = 0.20;
   double retreatDistance_ = 0.15;
-  double liftDistance_ = 0.15;
+  double liftDistance_ = 0.30;
   double viaExtraHeight_ = 0.10;
   double minBoxClearance_ = 0.05;
   double minTableClearance_ = 0.05;
@@ -1247,6 +1265,8 @@ class DualArmGraspWaypointPlanner final {
 
   double dtCurrentToVia_ = 1.0;
   double dtViaToPregrasp_ = 1.0;
+  double dtYExpandedSettle_ = 1.0;
+  double dtViaSettle_ = 1.0;
   double dtPregraspToGrasp_ = 0.8;
   double graspHoldSec_ = 2.0;
   double dtGraspToRetreat_ = 0.8;
@@ -1272,8 +1292,8 @@ class DualArmGraspWaypointPlanner final {
   double carryHomeFrontClearance_ = 0.05;
   double carryHomeTableClearance_ = 0.05;
   double prePlaceHeight_ = 0.10;
-  double postReleaseRetreatDistance_ = 0.15;
-  double postReleaseRetreatHeight_ = 0.05;
+  double postReleaseRetreatDistance_ = 0.10;
+  double postReleaseRetreatHeight_ = 0.10;
   Eigen::Vector3d transportOffset_ = Eigen::Vector3d::Zero();
   bool dryRunMode_ = false;
 

@@ -134,7 +134,7 @@ def generate_launch_description():
         ),
         launch.actions.DeclareLaunchArgument(
             name='lift_distance',
-            default_value='0.20'
+            default_value='0.30'
         ),
         launch.actions.DeclareLaunchArgument(
             name='trajectory_time_scale',
