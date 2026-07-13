@@ -673,6 +673,13 @@ class DualArmGraspWaypointPlanner final {
       PoseData via = preGrasp;
       via.position.z() = std::max({currentPoses[armIndex].position.z(), preGrasp.position.z(), safeTransitHeight});
 
+      // Expand both arms outside the box footprint before descending.  This
+      // keeps the approach from crossing through the box center when the
+      // pre-grasp pose is reached from the high-clearance transit plane.
+      const double yExpansion = 0.5 * boxSizeY_ + approachBoxClearance_;
+      PoseData yExpanded = via;
+      yExpanded.position.y() = snapshot.boxPose.position.y() + (armIndex == 0 ? yExpansion : -yExpansion);
+
       PoseData hold = graspPose;
       PoseData lift;
 
@@ -711,15 +718,16 @@ class DualArmGraspWaypointPlanner final {
       if (carryHomeAfterGrasp_) {
         const PoseData carryUpright = composeEndEffectorPose(carrySession.carryUprightBoxPose, armIndex, carrySession);
         const PoseData carryHome = composeEndEffectorPose(carryHomeBoxPose, armIndex, carrySession);
-        armWaypoints[armIndex] = {currentPoses[armIndex], clearanceLift, via, preGrasp, graspPose, hold,
+        armWaypoints[armIndex] = {currentPoses[armIndex], clearanceLift, yExpanded, via, preGrasp, graspPose, hold,
                                   liftSubSteps[0], liftSubSteps[1], liftSubSteps[2],
                                   lift, carryUpright, carryHome};
       } else {
-        armWaypoints[armIndex] = {currentPoses[armIndex], clearanceLift, via, preGrasp, graspPose, hold,
+        armWaypoints[armIndex] = {currentPoses[armIndex], clearanceLift, yExpanded, via, preGrasp, graspPose, hold,
                                   liftSubSteps[0], liftSubSteps[1], liftSubSteps[2], lift};
       }
 
-      if (via.position.z() < safeTransitHeight - 1e-9 || clearanceLift.position.z() < safeTransitHeight - 1e-9 ||
+      if (via.position.z() < safeTransitHeight - 1e-9 || yExpanded.position.z() < safeTransitHeight - 1e-9 ||
+          clearanceLift.position.z() < safeTransitHeight - 1e-9 ||
           lift.position.z() < minTableClearance_ - 1e-9) {
         errorMessage = "Generated via/lift waypoint violates box or table clearance.";
         return false;
@@ -731,6 +739,7 @@ class DualArmGraspWaypointPlanner final {
     }
 
     const double dtCurrentToClearance = 0.5 * dtCurrentToVia_;
+    const double dtCurrentToYExpanded = 0.75 * dtCurrentToVia_;
     const double contactTime = dtCurrentToVia_ + dtViaToPregrasp_ + dtPregraspToGrasp_;
     const double holdEndTime = contactTime + graspHoldSec_;
     const double liftEndTime = holdEndTime + dtRetreatToLift_;
@@ -739,6 +748,7 @@ class DualArmGraspWaypointPlanner final {
     if (carryHomeAfterGrasp_) {
       timeOffsets = {0.0,
                      scaledTime(dtCurrentToClearance),
+                     scaledTime(dtCurrentToYExpanded),
                      scaledTime(dtCurrentToVia_),
                      scaledTime(dtCurrentToVia_ + dtViaToPregrasp_),
                      scaledTime(contactTime),
@@ -752,6 +762,7 @@ class DualArmGraspWaypointPlanner final {
     } else {
       timeOffsets = {0.0,
                      scaledTime(dtCurrentToClearance),
+                     scaledTime(dtCurrentToYExpanded),
                      scaledTime(dtCurrentToVia_),
                      scaledTime(dtCurrentToVia_ + dtViaToPregrasp_),
                      scaledTime(contactTime),
