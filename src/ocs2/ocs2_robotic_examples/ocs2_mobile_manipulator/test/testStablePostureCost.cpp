@@ -71,8 +71,8 @@ TEST(StablePostureConfig, DefinesTheFixedNineteenJointPosture) {
   vector_t posture = vector_t::Zero(19);
   loadData::loadEigenMatrix(taskFile, "initialState.arm", posture);
 
-  const vector_t expected = (vector_t(19) << 0.05, 0.10, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
-                             0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00)
+  const vector_t expected = (vector_t(19) << 0.05, 0.10, 0.00, 0.00, 0.00, 0.00, 0.05, 0.00, 0.00, 0.00,
+                             0.00, 0.00, 0.00, -0.05, 0.00, 0.00, 0.00, 0.00, 0.00)
                                 .finished();
   EXPECT_TRUE(posture.isApprox(expected, 1e-12));
 

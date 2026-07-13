@@ -23,14 +23,14 @@
 | `waist_up_joint` | 0.00 |
 | `chest_joint` | 0.00 |
 | `arm1_left_joint` | 0.00 |
-| `arm2_left_joint` | 0.00 |
+| `arm2_left_joint` | 0.05 |
 | `arm3_left_joint` | 0.00 |
 | `arm4_left_joint` | 0.00 |
 | `wrist1_left_joint` | 0.00 |
 | `wrist2_left_joint` | 0.00 |
 | `wrist3_left_joint` | 0.00 |
 | `arm1_right_joint` | 0.00 |
-| `arm2_right_joint` | 0.00 |
+| `arm2_right_joint` | -0.05 |
 | `arm3_right_joint` | 0.00 |
 | `arm4_right_joint` | 0.00 |
 | `wrist1_right_joint` | 0.00 |

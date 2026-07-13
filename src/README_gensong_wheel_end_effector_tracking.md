@@ -16,9 +16,9 @@
 
 ```text
 [leg_low=0.05, leg_up=0.10, waist_low=0.00, waist_up=0.00, chest=0.00,
- arm1_left=0.00, arm2_left=0.00, arm3_left=0.00, arm4_left=0.00,
+ arm1_left=0.00, arm2_left=0.05, arm3_left=0.00, arm4_left=0.00,
  wrist1_left=0.00, wrist2_left=0.00, wrist3_left=0.00,
- arm1_right=0.00, arm2_right=0.00, arm3_right=0.00, arm4_right=0.00,
+ arm1_right=0.00, arm2_right=-0.05, arm3_right=0.00, arm4_right=0.00,
  wrist1_right=0.00, wrist2_right=0.00, wrist3_right=0.00]
 ```
 
