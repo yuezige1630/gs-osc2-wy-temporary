@@ -21,8 +21,6 @@ except ModuleNotFoundError:  # installed ROS executable shares its directory wit
 
 try:
     # This node publishes off-screen camera frames and does not create a GUI.
-    # EGL avoids X11/GLX context failures on remote displays and headless hosts.
-    os.environ.setdefault("MUJOCO_GL", "egl")
     import mujoco
     import mujoco.viewer
 except ImportError as exc:  # pragma: no cover - exercised only on missing runtime dependency
@@ -118,10 +116,34 @@ class GensongMujoco(Node):
         self.create_subscription(JointState, "/gensong/joint_command", self.on_joint_command, 10)
         self.create_subscription(Twist, "/cmd_vel", self.on_cmd_vel, 10)
 
+        self._renderer = None
+        self._camera_data = None
+
         self.sim_thread = threading.Thread(target=self.simulation_loop, daemon=True)
-        self.camera_thread = threading.Thread(target=self.camera_loop, daemon=True)
+
+    def start_simulation(self):
+        """Start the simulation loop thread (must be called after the viewer is ready)."""
         self.sim_thread.start()
-        self.camera_thread.start()
+
+    def setup_camera_renderer(self):
+        """Create the camera renderer (must be called after the viewer is launched)."""
+        self.get_logger().info("Creating camera renderer...")
+        try:
+            self._renderer = mujoco.Renderer(
+                self.model,
+                height=int(self.get_parameter("camera_height").value),
+                width=int(self.get_parameter("camera_width").value),
+            )
+            self._camera_data = mujoco.MjData(self.model)
+            self.get_logger().info("Camera renderer created successfully")
+        except Exception as e:
+            self.get_logger().error("Camera renderer creation failed: %s" % e)
+            return
+
+        # Use a ROS 2 timer for camera publishing in the main thread
+        # (avoids EGL context thread-safety issues)
+        camera_period = 1.0 / float(self.get_parameter("camera_hz").value)
+        self._camera_timer = self.create_timer(camera_period, self.camera_timer_callback)
 
     def on_joint_command(self, msg):
         with self.lock:
@@ -172,7 +194,10 @@ class GensongMujoco(Node):
         contacts = set()
         force_by_hand = {"left": 0.0, "right": 0.0}
         for index in range(self.data.ncon):
-            contact = self.data.contact[index]
+            try:
+                contact = self.data.contact[index]
+            except IndexError:
+                break
             pair = {int(contact.geom1), int(contact.geom2)}
             if self.box_collision_geom_id in pair:
                 force = np.zeros(6)
@@ -270,35 +295,19 @@ class GensongMujoco(Node):
             next_tick += period
             time.sleep(max(0.0, next_tick - time.monotonic()))
 
-    def camera_loop(self):
-        # Rendering has its own EGL context and a private MjData snapshot, so
-        # expensive RGB-D rendering cannot stop the 500 Hz simulation/state
-        # paths. The short copy under the lock keeps the live simulation data
-        # protected while rendering happens outside the lock.
-        renderer = mujoco.Renderer(
-            self.model,
-            height=int(self.get_parameter("camera_height").value),
-            width=int(self.get_parameter("camera_width").value),
-        )
-        camera_data = mujoco.MjData(self.model)
-        period = 1.0 / float(self.get_parameter("camera_hz").value)
-        next_tick = time.monotonic()
+    def camera_timer_callback(self):
+        # Runs in the main thread (ROS 2 timer callback), so the EGL context
+        # created in __init__ remains valid for the same thread.
+        if self._renderer is None or not rclpy.ok():
+            return
+        with self.lock:
+            mujoco.mj_copyData(self._camera_data, self.model, self.data)
         try:
-            while self.running and rclpy.ok():
-                with self.lock:
-                    mujoco.mj_copyData(camera_data, self.model, self.data)
-                try:
-                    self.publish_camera(renderer, camera_data)
-                except Exception:
-                    # ROS may invalidate publishers before this worker sees
-                    # the shutdown flag. Exit quietly during normal teardown.
-                    if not rclpy.ok():
-                        break
-                    raise
-                next_tick += period
-                time.sleep(max(0.0, next_tick - time.monotonic()))
-        finally:
-            renderer.close()
+            self.publish_camera(self._renderer, self._camera_data)
+        except Exception:
+            if not rclpy.ok():
+                return
+            raise
 
     def publish_state(self):
         if not rclpy.ok():
@@ -351,7 +360,8 @@ class GensongMujoco(Node):
     def destroy_node(self):
         self.running = False
         if hasattr(self, "sim_thread"): self.sim_thread.join(timeout=2.0)
-        if hasattr(self, "camera_thread"): self.camera_thread.join(timeout=2.0)
+        if self._renderer is not None:
+            self._renderer.close()
         super().destroy_node()
 
 
@@ -362,11 +372,17 @@ def main(args=None):
     try:
         if node.get_parameter("viewer").value:
             viewer = mujoco.viewer.launch_passive(node.model, node.data)
+            # Start the simulation and camera renderer after the viewer so
+            # that GLFW contexts are created in the correct order (viewer first).
+            node.start_simulation()
+            node.setup_camera_renderer()
             while viewer.is_running() and rclpy.ok():
                 rclpy.spin_once(node, timeout_sec=0.01)
                 with node.lock:
                     viewer.sync()
         else:
+            node.start_simulation()
+            node.setup_camera_renderer()
             rclpy.spin(node)
     finally:
         if viewer is not None:
