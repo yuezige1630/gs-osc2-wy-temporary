@@ -202,8 +202,8 @@
                   <inertial pos="-0.071684 -2.675E-05 -0.057635" mass="0.54512" fullinertia="0.0030918 0.0035052 0.0012614 -2.02E-06 -0.00012518 -3.75E-06" />
                   <geom type="mesh" rgba="0.752941 0.752941 0.752941 1" mesh="camera_head_link" class="visual_mesh" density="0" />
                               <geom name="camera_head_link_collision" type="sphere" pos="-0.05 0 0" size="0.10" contype="1" conaffinity="1" group="5" rgba="0 1 0 0.18"/>
-                  <camera name="gensong_rgb_camera" pos="0.25 0 0.1" xyaxes="0 -1 0 0.70710678 0 0.70710678" fovy="70"/>
-                  <camera name="gensong_depth_camera" pos="0.25 0 0.1" xyaxes="0 -1 0 0.70710678 0 0.70710678" fovy="70"/>
+                  <camera name="gensong_rgb_camera" pos="0.02 0 0" xyaxes="0 -1 0 0.70710678 0 0.70710678" fovy="70"/>
+                  <camera name="gensong_depth_camera" pos="0.02 0 0" xyaxes="0 -1 0 0.70710678 0 0.70710678" fovy="70"/>
                 </body>
                 <body name="arm1_left_link" pos="6.2489E-05 0.1198 0.212">
                   <inertial pos="-0.0084306 0.07665641 -0.00912431" mass="2.10687277" fullinertia="0.00415914 0.00311439 0.00417595 4.654E-05 -4.3E-07 0.00028392" />
