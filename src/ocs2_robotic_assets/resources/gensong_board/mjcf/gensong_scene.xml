@@ -195,7 +195,7 @@
               <geom type="mesh" rgba="0.776471 0.756863 0.737255 1" mesh="waist_up_link" class="visual_mesh" />
               <body name="chest_link" pos="6.0573E-05 0 0.2055">
                 <inertial pos="-0.00067665 0.00073282 0.1860538" mass="12.51428847"  fullinertia="0.15596357 0.10420102 0.08110605 -5.673E-05 0.00093242 0.0010599" />
-                <joint class="motor_cra_ri70_80_pro_2_101_2e_ec_b1" name="chest_joint" pos="0 0 0" axis="0.00029476 0 1" range="-2.618 2.618" actuatorfrcrange="-61 61" />
+                <joint class="motor_cra_ri70_80_pro_2_101_2e_ec_b1" name="chest_joint" pos="0 0 0" axis="0.00029476 0 1" range="-2.618 2.618" actuatorfrcrange="-61 61" damping="12.0" />
                 <geom type="mesh" rgba="0.776471 0.756863 0.737255 1" mesh="chest_link" class="visual_mesh" />
                               <geom name="chest_link_collision" type="cylinder" pos="0 0 0.035" size="0.08 0.14" contype="1" conaffinity="1" group="5" rgba="0 1 0 0.18"/>
                 <body name="camera_head_link" pos="0.078342 0.00014174 0.45535">

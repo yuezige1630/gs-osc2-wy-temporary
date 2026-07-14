@@ -97,7 +97,7 @@ class DualArmGraspWaypointPlanner final {
                         node_->declare_parameter<double>("right_wrist_compensation_rpy.pitch", 0.0),
                         node_->declare_parameter<double>("right_wrist_compensation_rpy.yaw", 0.0));
 
-    approachDistance_ = node_->declare_parameter<double>("approach_distance", 0.20);
+    approachDistance_ = node_->declare_parameter<double>("approach_distance", 0.12);
     retreatDistance_ = node_->declare_parameter<double>("retreat_distance", 0.15);
     liftDistance_ = node_->declare_parameter<double>("lift_distance", 0.30);
     viaExtraHeight_ = node_->declare_parameter<double>("via_extra_height", 0.10);
@@ -137,7 +137,7 @@ class DualArmGraspWaypointPlanner final {
     carryHomeFrontClearance_ = node_->declare_parameter<double>("carry_home_front_clearance", 0.05);
     carryHomeTableClearance_ = node_->declare_parameter<double>("carry_home_table_clearance", minTableClearance_);
     prePlaceHeight_ = node_->declare_parameter<double>("pre_place_height", 0.10);
-    postReleaseRetreatDistance_ = node_->declare_parameter<double>("post_release_retreat_distance", 0.10);
+    postReleaseRetreatDistance_ = node_->declare_parameter<double>("post_release_retreat_distance", 0.12);
     postReleaseRetreatHeight_ = node_->declare_parameter<double>("post_release_retreat_height", 0.10);
     transportOffset_.x() = node_->declare_parameter<double>("transport_offset_x", 0.0);
     transportOffset_.y() = node_->declare_parameter<double>("transport_offset_y", 0.0);

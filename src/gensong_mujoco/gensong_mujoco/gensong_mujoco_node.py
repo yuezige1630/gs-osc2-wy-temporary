@@ -83,7 +83,9 @@ class GensongMujoco(Node):
         self.box_grasped = False
         self._next_contact_report = 0.0
         self.command = np.zeros(self.model.nv)
-        self.base_command = np.zeros(3)
+        # Unicycle command: forward linear velocity and yaw rate.
+        # There is no lateral (linear.y) velocity command.
+        self.base_command = np.zeros(2)
         self.control_names = [
             self.model.joint(i).name for i in range(self.model.njnt)
             if self.model.joint(i).name not in {"base_x", "base_y", "base_yaw", "scene_box_freejoint"}
@@ -101,6 +103,7 @@ class GensongMujoco(Node):
             "y": self.model.joint("base_y").dofadr[0],
             "yaw": self.model.joint("base_yaw").dofadr[0],
         }
+        self.base_yaw_qpos = self.model.joint("base_yaw").qposadr[0]
 
         self.state_pub = self.create_publisher(JointState, "/gensong/joint_states", 10)
         self.color_pub = self.create_publisher(Image, self.get_parameter("color_topic").value, 10)
@@ -163,7 +166,7 @@ class GensongMujoco(Node):
         )
     def on_cmd_vel(self, msg):
         with self.lock:
-            self.base_command[:] = (msg.linear.x, msg.linear.y, msg.angular.z)
+            self.base_command[:] = (msg.linear.x, msg.angular.z)
 
     def _has_dual_hand_contact(self):
         contacts = set()
@@ -254,9 +257,11 @@ class GensongMujoco(Node):
                     torque = float(np.clip(torque, -torque_limit, torque_limit))
                     for actuator_id in self.actuator_ids.get(name, []):
                         self.data.ctrl[actuator_id] = torque
-                self.data.qvel[self.base_qvel["x"]] = self.base_command[0]
-                self.data.qvel[self.base_qvel["y"]] = self.base_command[1]
-                self.data.qvel[self.base_qvel["yaw"]] = self.base_command[2]
+                forward_velocity, yaw_rate = self.base_command
+                base_yaw = self.data.qpos[self.base_yaw_qpos]
+                self.data.qvel[self.base_qvel["x"]] = np.cos(base_yaw) * forward_velocity
+                self.data.qvel[self.base_qvel["y"]] = np.sin(base_yaw) * forward_velocity
+                self.data.qvel[self.base_qvel["yaw"]] = yaw_rate
                 mujoco.mj_step(self.model, self.data)
                 self._update_physical_grasp_state()
             step_count += 1

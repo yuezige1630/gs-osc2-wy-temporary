@@ -21,7 +21,7 @@ Interfaces:
 
 - Subscribe to `/gensong/joint_command` (`sensor_msgs/msg/JointState`); named
   messages are matched by joint name, unnamed messages follow model order.
-- Subscribe to `/cmd_vel` (`geometry_msgs/msg/Twist`) for planar base velocity.
+- Subscribe to `/cmd_vel` (`geometry_msgs/msg/Twist`) for nonholonomic base velocity: `linear.x` is forward velocity and `angular.z` is yaw rate; `linear.y` is ignored.
 - Publish `/gensong/joint_states` (`sensor_msgs/msg/JointState`).
 - The simulation and joint-state publisher default to 500 Hz. The MuJoCo
   bridge reads the `scene_box` center from the configured XML at startup and

@@ -101,7 +101,7 @@ def generate_launch_description():
         ),
         launch.actions.DeclareLaunchArgument(
             name='approach_distance',
-            default_value='0.20'
+            default_value='0.12'
         ),
         launch.actions.DeclareLaunchArgument(
             name='table_top_z',
