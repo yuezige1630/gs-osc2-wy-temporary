@@ -15,8 +15,8 @@ gensong_mujoco:
     wrist_velocity_gain: 120.0
     torque_limit: 300.0
     camera_hz: 30.0
-    camera_width: 640
-    camera_height: 480
+    camera_width: 1280
+    camera_height: 800
     color_topic: /gensong/camera/color/image_raw
     depth_topic: /gensong/camera/depth/image_raw
     color_info_topic: /gensong/camera/color/camera_info

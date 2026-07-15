@@ -39,8 +39,8 @@ class GensongMujoco(Node):
         self.declare_parameter("model_path", str(default_model))
         self.declare_parameter("simulation_hz", 500.0)
         self.declare_parameter("camera_hz", 30.0)
-        self.declare_parameter("camera_width", 640)
-        self.declare_parameter("camera_height", 480)
+        self.declare_parameter("camera_width", 1280)
+        self.declare_parameter("camera_height", 800)
         self.declare_parameter("color_topic", "/gensong/camera/color/image_raw")
         self.declare_parameter("depth_topic", "/gensong/camera/depth/image_raw")
         self.declare_parameter("color_info_topic", "/gensong/camera/color/camera_info")
@@ -349,7 +349,8 @@ class GensongMujoco(Node):
         self.depth_pub.publish(self.image_message(depth, "32FC1", stamp))
         for pub in (self.color_info_pub, self.depth_info_pub):
             info = CameraInfo(); info.header.stamp = stamp; info.width = rgb.shape[1]; info.height = rgb.shape[0]
-            f = info.width / (2.0 * np.tan(np.deg2rad(70.0) / 2.0)); info.k = [f, 0, info.width / 2.0, 0, f, info.height / 2.0, 0, 0, 1]
+            # Berxel K; must match MJCF focalpixel/principalpixel on gensong_*_camera.
+            info.k = [785.77, 0.0, 637.11, 0.0, 785.19, 390.26, 0.0, 0.0, 1.0]
             pub.publish(info)
 
     def image_message(self, array, encoding, stamp):
